@@ -9,7 +9,7 @@ this_directory = Path(__file__).parent
 
 setup(
     name="gitlab-pr-analyzer",
-    version="0.1.0",
+    version="0.2.0",
     author="GitLab PR Analyzer Team",
     description="Tooling for collecting, searching and analyzing GitLab Merge Requests and commits",
     long_description="GitLab Merge Request Analyzer",
@@ -22,6 +22,7 @@ setup(
         "click>=8.1.0",
         "rich>=13.0.0",
         "requests>=2.31.0",
+        "python-gitlab>=3.15.0",
         "gitpython>=3.1.40",
         "python-dateutil>=2.8.2",
         "fuzzywuzzy>=0.18.0",

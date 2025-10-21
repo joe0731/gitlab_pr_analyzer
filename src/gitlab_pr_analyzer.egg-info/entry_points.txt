@@ -1,2 +1,0 @@
-[console_scripts]
-gl-pr-analyzer = gitlab_pr_analyzer.cli:cli

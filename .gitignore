@@ -1,0 +1,14 @@
+# python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# environments
+.venv/
+venv/
+.env
+
+# system files
+.DS_Store

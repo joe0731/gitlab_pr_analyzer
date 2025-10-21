@@ -459,6 +459,138 @@ def view_commit(commit_sha: str, analyze: bool) -> None:
 
 
 @cli.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option(
+    "--project",
+    "-p",
+    help="GitLab project path (group/subgroup/project). auto-detect if omitted.",
+)
+@click.option(
+    "--days",
+    "-d",
+    type=int,
+    default=60,
+    show_default=True,
+    help="number of days to traverse merge requests",
+)
+def traverse(project: Optional[str], days: int) -> None:
+    """traverse recent merge requests and analyze them with AI."""
+    print_banner()
+
+    if not check_prerequisites(require_project=False):
+        sys.exit(1)
+
+    if days <= 0:
+        console.print("[red]days must be a positive integer[/red]")
+        sys.exit(1)
+
+    project_path = resolve_project(project)
+
+    ai_analyzer = AIAnalyzer()
+    if not ai_analyzer.is_available:
+        console.print(
+            "[red]AI analysis not available. configure CURSOR_AGENT_PATH to enable.[/red]"
+        )
+        sys.exit(1)
+
+    try:
+        collector = MergeRequestCollector(project_path)
+        data = collector.collect(days=days)
+        open_merge_requests = data.get("open", [])
+        merged_merge_requests = data.get("merged", [])
+
+        console.print("\n[bold]Project:[/bold] {0}".format(project_path))
+        console.print(
+            "[bold]Traversal Window:[/bold] last {0} days".format(days)
+        )
+        console.print(
+            "[bold magenta]Open MRs:[/bold magenta] {0}".format(
+                len(open_merge_requests)
+            )
+        )
+        console.print(
+            "[bold magenta]Merged MRs:[/bold magenta] {0}".format(
+                len(merged_merge_requests)
+            )
+        )
+
+        if not open_merge_requests and not merged_merge_requests:
+            console.print("[yellow]no merge requests found in the specified range[/yellow]")
+            return
+
+        analyzed_items: List[tuple[MergeRequestSummary, Optional[str]]] = []
+
+        def provide_diff(item: MergeRequestSummary) -> str:
+            command = [
+                "glab",
+                "mr",
+                "diff",
+                str(item.iid),
+                "--repo",
+                project_path,
+            ]
+            _, stdout, _ = run_command(command, check=False)
+            return stdout
+
+        def analyze_group(target_items: List[MergeRequestSummary], label: str) -> None:
+            if not target_items:
+                console.print(
+                    "[yellow]no {0} to analyze[/yellow]".format(label.lower())
+                )
+                return
+
+            console.print(
+                "\n[bold cyan]Analyzing {0}...[/bold cyan]".format(label)
+            )
+
+            total_items = len(target_items)
+            index_value = 1
+            for item in target_items:
+                console.print(
+                    "\n[bold]Analyzing {0} {1}/{2}: MR !{3}[/bold]".format(
+                        label[:-1],
+                        index_value,
+                        total_items,
+                        item.iid,
+                    )
+                )
+                analysis = ai_analyzer.analyze(
+                    item,
+                    include_diff=True,
+                    diff_provider=provide_diff,
+                )
+                analyzed_items.append((item, analysis))
+                if analysis:
+                    ai_analyzer.display_analysis(item, analysis)
+                index_value += 1
+
+        analyze_group(merged_merge_requests, "Merged MRs")
+        analyze_group(open_merge_requests, "Open MRs")
+
+        if analyzed_items:
+            save_report = Confirm.ask(
+                "\nsave traversal analysis report?", default=False
+            )
+            if save_report:
+                summary_query = "Traversal analysis for last {0} days".format(days)
+                report = ai_analyzer.generate_summary_report(
+                    analyzed_items,
+                    query=summary_query,
+                )
+                safe_name = project_path.replace("/", "_")
+                report_file = Path(
+                    "gitlab_mr_traversal_{0}_{1}d.md".format(safe_name, days)
+                )
+                report_file.write_text(report)
+                console.print(
+                    "[green]✓ report saved to: {0}[/green]".format(report_file)
+                )
+
+    except Exception as error:
+        console.print(f"[red]Error: {error}[/red]")
+        sys.exit(1)
+
+
+@cli.command(context_settings={"help_option_names": ["-h", "--help"]})
 def interactive() -> None:
     """interactive mode for exploring merge requests and commits."""
     print_banner()

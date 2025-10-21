@@ -1,80 +1,145 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Keyword-based matcher for GitLab analyzer."""
-
-"""Keyword-based matcher for GitLab analyzer."""
+"""matcher module for GitLab analyzer."""
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Sequence, Tuple
 
+from rich.console import Console
+
+from .mr_collector import MergeRequestSummary
+from .commit_collector import CommitSummary
 from .utils import normalize_keywords, normalize_text
+
+console = Console()
 
 
 @dataclass
 class MatchResult:
+    """match result container."""
+
     item: object
     score: int
     matched_fields: List[str]
     item_type: str
 
+    def __str__(self) -> str:
+        return f"[{self.item_type}] score={self.score} fields={','.join(self.matched_fields)}"
+
 
 class Matcher:
-    """simple keyword matcher using presence counts."""
+    """keyword-based matcher for merge requests and commits."""
 
-    def _calculate_score(self, keywords: List[str], text: str, weight: float) -> int:
+    def __init__(self, minimum_score: int = 30):
+        self.minimum_score = minimum_score
+
+    def _calculate_score(self, keywords: List[str], text: str, weight: float) -> Tuple[int, List[str]]:
         if not text:
-            return 0
+            return 0, []
 
         normalized_text = normalize_text(text)
-        hits = 0
+        matched_keywords: List[str] = []
+
         for keyword in keywords:
             if keyword in normalized_text:
-                hits += 1
+                matched_keywords.append(keyword)
 
-        if hits == 0:
+        if not matched_keywords:
+            return 0, []
+
+        score = int(min(100, len(matched_keywords) * 20 * weight))
+        return score, matched_keywords
+
+    def _aggregate(self, scores: List[int]) -> int:
+        if not scores:
             return 0
+        total = sum(scores)
+        return min(100, total)
 
-        return min(100, int(hits * 20 * weight))
-
-    def match_merge_request(self, mr, keywords: List[str]) -> MatchResult:
+    def match_merge_request(self, mr: MergeRequestSummary, keywords: List[str]) -> MatchResult:
         normalized_keywords = normalize_keywords(keywords)
 
-        score = 0
-        matched_fields: List[str] = []
-
-        field_weights = {
-            "title": 1.0,
-            "description": 0.8,
-            "labels": 0.5,
+        fields = {
+            "title": (mr.title, 1.0),
+            "description": (mr.description or "", 0.8),
+            "labels": (" ".join(mr.labels), 0.6),
+            "branches": (
+                f"{mr.source_branch or ''} {mr.target_branch or ''}",
+                0.4,
+            ),
         }
 
-        title_score = self._calculate_score(
-            normalized_keywords, mr.title, field_weights["title"]
-        )
-        if title_score:
-            score += title_score
-            matched_fields.append("title")
+        scores: List[int] = []
+        matched_fields: List[str] = []
 
-        description_score = self._calculate_score(
-            normalized_keywords,
-            mr.description or "",
-            field_weights["description"],
-        )
-        if description_score:
-            score += description_score
-            matched_fields.append("description")
+        for field_name, (text, weight) in fields.items():
+            score, hits = self._calculate_score(normalized_keywords, text, weight)
+            if score > 0 and hits:
+                scores.append(score)
+                matched_fields.append(field_name)
 
-        labels_text = " ".join(mr.labels)
-        labels_score = self._calculate_score(
-            normalized_keywords, labels_text, field_weights["labels"]
-        )
-        if labels_score:
-            score += labels_score
-            matched_fields.append("labels")
+        total_score = self._aggregate(scores)
 
         return MatchResult(
             item=mr,
-            score=min(100, score),
+            score=total_score,
             matched_fields=matched_fields,
             item_type="MR",
         )
+
+    def match_commit(self, commit: CommitSummary, keywords: List[str]) -> MatchResult:
+        normalized_keywords = normalize_keywords(keywords)
+
+        fields = {
+            "message": (commit.message, 1.0),
+            "author": (commit.author, 0.5),
+            "email": (commit.author_email or "", 0.4),
+        }
+
+        scores: List[int] = []
+        matched_fields: List[str] = []
+
+        for field_name, (text, weight) in fields.items():
+            score, hits = self._calculate_score(normalized_keywords, text, weight)
+            if score > 0 and hits:
+                scores.append(score)
+                matched_fields.append(field_name)
+
+        total_score = self._aggregate(scores)
+
+        return MatchResult(
+            item=commit,
+            score=total_score,
+            matched_fields=matched_fields,
+            item_type="Commit",
+        )
+
+    def search(
+        self,
+        merge_requests: Sequence[MergeRequestSummary],
+        commits: Sequence[CommitSummary],
+        query: str,
+        max_results: int = 20,
+    ) -> List[MatchResult]:
+        keywords = normalize_keywords(query.split())
+        results: List[MatchResult] = []
+
+        for mr in merge_requests:
+            match = self.match_merge_request(mr, keywords)
+            if match.score >= self.minimum_score:
+                results.append(match)
+
+        for commit in commits:
+            match = self.match_commit(commit, keywords)
+            if match.score >= self.minimum_score:
+                results.append(match)
+
+        results.sort(key=lambda item: item.score, reverse=True)
+        if len(results) > max_results:
+            results = results[:max_results]
+
+        console.print(
+            f"[green]✓ Found {len(results)} matches from {len(merge_requests)} merge requests and {len(commits)} commits[/green]"
+        )
+
+        return results

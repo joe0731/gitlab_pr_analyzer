@@ -16,6 +16,11 @@ class GitLabClient:
         host_url = host or config.gitlab_host
         token_value = token or config.gitlab_token
 
+        if not host_url:
+            raise RuntimeError(
+                "gitlab host not configured; set GITLAB_HOST to the portal base url"
+            )
+
         if not token_value:
             raise RuntimeError("gitlab token not configured; set GITLAB_TOKEN")
 

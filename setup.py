@@ -30,7 +30,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "以及 =gitlab_pr_analyzer.cli:cli",
+            "gl-pr-ai=gitlab_pr_analyzer.cli:cli",
         ],
     },
 )

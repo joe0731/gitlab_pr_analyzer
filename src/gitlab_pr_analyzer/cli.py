@@ -71,7 +71,17 @@ def check_prerequisites(require_project: bool = True) -> bool:
 def resolve_project(project: Optional[str]) -> str:
     """resolve project path using CLI option or git remote."""
     if project:
-        return project
+        cleaned = project.strip()
+
+        if cleaned in {"", ".", "./"}:
+            raise click.UsageError(
+                "invalid project identifier '.'; provide full GitLab path like group/subgroup/project"
+            )
+
+        if cleaned.startswith("./") and len(cleaned) > 2:
+            cleaned = cleaned[2:]
+
+        return cleaned
 
     if not config.gitlab_host:
         raise click.UsageError("GITLAB_HOST must be set to auto-detect project path")

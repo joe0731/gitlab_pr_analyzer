@@ -62,21 +62,29 @@ class MergeRequestCollector:
     def collect(self, days: int = 60) -> Dict[str, List[MergeRequestSummary]]:
         """collect open and merged merge requests within given days."""
         date_filter = get_date_filter_by_days(days)
-
+        
+        console.print(f"[dim]Starting collection of MRs updated after {date_filter}...[/dim]")
+        
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=console,
         ) as progress:
             task = progress.add_task("Collecting merge requests...", total=None)
-
+            
+            console.print("[dim]Fetching open MRs...[/dim]")
             open_mrs = self.client.list_merge_requests(
                 self.project, state="opened", updated_after=date_filter
             )
+            console.print(f"[dim]Found {len(open_mrs)} open MRs[/dim]")
+            
+            console.print("[dim]Fetching merged MRs...[/dim]")
             merged_mrs = self.client.list_merge_requests(
                 self.project, state="merged", updated_after=date_filter
             )
-
+            console.print(f"[dim]Found {len(merged_mrs)} merged MRs[/dim]")
+            
+            console.print("[dim]Converting MR data...[/dim]")
             open_converted = [self._convert(mr) for mr in open_mrs]
             merged_converted = [self._convert(mr) for mr in merged_mrs]
 
@@ -92,24 +100,33 @@ class MergeRequestCollector:
             raise ValueError("months must be positive")
 
         date_filter = get_date_filter(months)
-
+        
+        console.print(f"[dim]Starting collection of MRs updated after {date_filter}...[/dim]")
+        
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=console,
         ) as progress:
             task = progress.add_task("Collecting merge requests...", total=None)
-
+            
+            console.print("[dim]Fetching open MRs...[/dim]")
             open_mrs = self.client.list_merge_requests(
                 self.project, state="opened", updated_after=date_filter
             )
+            console.print(f"[dim]Found {len(open_mrs)} open MRs[/dim]")
+            
+            console.print("[dim]Fetching merged MRs...[/dim]")
             merged_mrs = self.client.list_merge_requests(
                 self.project, state="merged", updated_after=date_filter
             )
-
+            console.print(f"[dim]Found {len(merged_mrs)} merged MRs[/dim]")
+            
+            console.print("[dim]Converting MR data...[/dim]")
             open_converted = [self._convert(mr) for mr in open_mrs]
             merged_converted = [self._convert(mr) for mr in merged_mrs]
 
             progress.update(task, completed=True)
+            console.print("[dim]Collection completed[/dim]")
 
         return {"open": open_converted, "merged": merged_converted}

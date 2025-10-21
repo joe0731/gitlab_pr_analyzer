@@ -55,6 +55,42 @@ def check_git() -> bool:
         return False
 
 
+def check_glab() -> bool:
+    """check if glab is installed."""
+    try:
+        returncode, _, _ = run_command(["glab", "--version"], check=False)
+        return returncode == 0
+    except Exception:
+        return False
+
+
+def print_glab_installation_guide() -> None:
+    """print glab installation guide."""
+    console.print("\n[bold yellow]glab (GitLab CLI) is not installed or not available in PATH[/bold yellow]")
+    console.print("\n[bold cyan]Installation Guide:[/bold cyan]")
+    console.print("1. [bold]macOS (using Homebrew):[/bold]")
+    console.print("   brew install glab")
+    console.print("\n2. [bold]Linux (using package manager):[/bold]")
+    console.print("   # Ubuntu/Debian:")
+    console.print("   curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg")
+    console.print("   echo \"deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main\" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null")
+    console.print("   sudo apt update && sudo apt install glab")
+    console.print("\n   # CentOS/RHEL/Fedora:")
+    console.print("   sudo dnf install glab")
+    console.print("\n3. [bold]Windows:[/bold]")
+    console.print("   # Using Chocolatey:")
+    console.print("   choco install glab")
+    console.print("   # Using Scoop:")
+    console.print("   scoop install glab")
+    console.print("\n4. [bold]Manual Installation:[/bold]")
+    console.print("   Download from: https://github.com/profclems/glab/releases")
+    console.print("\n[bold cyan]After installation:[/bold cyan]")
+    console.print("1. Run: glab auth login")
+    console.print("2. Follow the prompts to authenticate with your GitLab instance")
+    console.print("\n[bold green]Note:[/bold green] This tool can work without glab, but some features (like diff analysis) may be limited.")
+    console.print("The tool will automatically use GitLab API and git commands as fallbacks.\n")
+
+
 def get_date_filter(months: int) -> str:
     """get iso date string months ago."""
     if months <= 0:

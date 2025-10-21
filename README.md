@@ -33,11 +33,14 @@ pip install dist/gitlab_pr_analyzer-0.3.0-py3-none-any.whl
 ## 环境要求
 - Python 3.8 及以上版本
 - 已安装 `git` 并可在命令行执行
-- 已安装 `glab`（GitLab CLI），并完成 `glab auth login`
 - 可访问目标 GitLab 实例的网络权限
 - GitLab Personal Access Token，需至少具备 `api` 或 `read_api` scope
 
-> `glab` 被用于获取 Merge Request diff 内容（例如 `traverse` 命令中的 AI 分析），请提前在本地或 CI 环境安装并完成认证。
+### 可选工具
+- **`glab`（GitLab CLI）**：推荐安装，用于更快速地获取 Merge Request diff 内容
+  - 如未安装，工具会自动使用 GitLab API 和 git 命令作为备用方案
+  - 安装后需完成 `glab auth login` 认证
+  - 工具启动时会检查 `glab` 可用性，如未安装会显示安装指导
 
 ## 连接私有化部署的 GitLab
 GitLab PR Analyzer 通过环境变量读取访问配置，以下设置适用于官方与私有化部署：

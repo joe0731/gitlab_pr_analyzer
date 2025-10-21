@@ -17,11 +17,14 @@ from .mr_collector import MergeRequestCollector, MergeRequestSummary
 from .commit_collector import CommitCollector, CommitSummary
 from .matcher import Matcher, MatchResult
 from .ai_analyzer import AIAnalyzer
+from .diff_provider import DiffProvider
 from .utils import (
     check_git,
+    check_glab,
     detect_gitlab_project,
     format_datetime,
     get_date_filter_by_days,
+    print_glab_installation_guide,
     run_command,
 )
 
@@ -42,9 +45,10 @@ def print_banner() -> None:
     console.print(banner, style="bold magenta")
 
 
-def check_prerequisites(require_project: bool = True) -> bool:
+def check_prerequisites(require_project: bool = True, check_glab_installation: bool = False) -> bool:
     """check CLI prerequisites."""
     errors: List[str] = []
+    warnings: List[str] = []
 
     if not config.gitlab_token:
         errors.append("missing GitLab token. set GITLAB_TOKEN environment variable.")
@@ -58,11 +62,21 @@ def check_prerequisites(require_project: bool = True) -> bool:
     if require_project and not config.gitlab_host:
         errors.append("cannot detect project without GITLAB_HOST")
 
+    # check glab availability
+    if not check_glab():
+        if check_glab_installation:
+            print_glab_installation_guide()
+        warnings.append("glab is not available. some features may be limited.")
+
     if errors:
         console.print("[red]prerequisite check failed:[/red]")
         for error in errors:
             console.print(f"  [red]- {error}[/red]")
         return False
+
+    if warnings:
+        for warning in warnings:
+            console.print(f"  [yellow]⚠ {warning}[/yellow]")
 
     console.print("[green]✓ prerequisites passed[/green]")
     return True
@@ -206,7 +220,42 @@ def render_commit_panel(commit: CommitSummary) -> None:
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 def cli() -> None:
-    """GitLab merge request analyzer CLI."""
+    """GitLab merge request analyzer CLI.
+    
+    \b
+    Required Environment Variables:
+      GITLAB_HOST        Your GitLab instance base URL (e.g., https://gitlab.example.com)
+      GITLAB_TOKEN       Personal Access Token with 'read_api' or 'api' scope
+    
+    \b
+    Optional Environment Variables:
+      GITLAB_INSTANCE_NAME    Display name for your GitLab instance (default: "GitLab")
+      CURSOR_AGENT_PATH       Path to cursor-agent executable for AI analysis features
+    
+    \b
+    Recommended Tools (Install Before Use):
+      glab                    GitLab CLI - REQUIRED for optimal diff analysis
+                             • macOS: brew install glab
+                             • Linux: sudo apt install glab (Ubuntu/Debian)
+                             • Windows: choco install glab
+                             • After install: glab auth login
+                             • Without glab: tool uses API fallback (slower)
+    
+    \b
+    Setup Example:
+      # 1. Install glab
+      brew install glab
+      
+      # 2. Authenticate with GitLab
+      glab auth login
+      
+      # 3. Set environment variables
+      export GITLAB_HOST="https://gitlab.example.com"
+      export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"
+      
+      # 4. Run analysis
+      gl-pr-ai traverse -p group/project -d 30
+    """
 
 
 @cli.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -307,10 +356,14 @@ def search(
     max_results: int,
     analyze: bool,
 ) -> None:
-    """search merge requests and commits by query."""
+    """search merge requests and commits by query.
+    
+    Use --analyze flag to enable AI analysis with diff content.
+    For best results with --analyze, install: brew install glab && glab auth login
+    """
     print_banner()
 
-    if not check_prerequisites(require_project=False):
+    if not check_prerequisites(require_project=False, check_glab_installation=analyze):
         sys.exit(1)
 
     project_path = resolve_project(project)
@@ -343,21 +396,10 @@ def search(
 
             console.print("\n[bold cyan]Running AI analysis...[/bold cyan]\n")
 
+            diff_provider = DiffProvider(project_path)
+
             def provide_diff(item):
-                if isinstance(item, MergeRequestSummary):
-                    command = [
-                        "glab",
-                        "mr",
-                        "diff",
-                        str(item.iid),
-                        "--repo",
-                        project_path,
-                    ]
-                    _, stdout, _ = run_command(command, check=False)
-                    return stdout
-                command = ["git", "show", item.sha]
-                _, stdout, _ = run_command(command, check=False)
-                return stdout
+                return diff_provider.get_diff(item)
 
             analyzed = ai_analyzer.batch_analyze(
                 [r.item for r in results[:5]],
@@ -391,10 +433,14 @@ def search(
 )
 @click.option("--analyze", "-a", is_flag=True, help="analyze merge request with AI")
 def view_mr(mr_iid: int, project: Optional[str], analyze: bool) -> None:
-    """view details of a specific merge request."""
+    """view details of a specific merge request.
+    
+    Use --analyze flag to enable AI analysis with diff content.
+    For best results with --analyze, install: brew install glab && glab auth login
+    """
     print_banner()
 
-    if not check_prerequisites(require_project=False):
+    if not check_prerequisites(require_project=False, check_glab_installation=analyze):
         sys.exit(1)
 
     project_path = resolve_project(project)
@@ -414,18 +460,10 @@ def view_mr(mr_iid: int, project: Optional[str], analyze: bool) -> None:
         if analyze:
             ai_analyzer = AIAnalyzer()
             if ai_analyzer.is_available:
+                diff_provider = DiffProvider(project_path)
 
-                def provide_diff(_: MergeRequestSummary) -> str:
-                    command = [
-                        "glab",
-                        "mr",
-                        "diff",
-                        str(target.iid),
-                        "--repo",
-                        project_path,
-                    ]
-                    _, stdout, _ = run_command(command, check=False)
-                    return stdout
+                def provide_diff(item: MergeRequestSummary) -> str:
+                    return diff_provider.get_diff(item)
 
                 analysis = ai_analyzer.analyze(
                     target, include_diff=True, diff_provider=provide_diff
@@ -461,11 +499,10 @@ def view_commit(commit_sha: str, analyze: bool) -> None:
         if analyze:
             ai_analyzer = AIAnalyzer()
             if ai_analyzer.is_available:
+                diff_provider = DiffProvider(".")  # use current directory for commits
 
-                def provide_diff(_: CommitSummary) -> str:
-                    command = ["git", "show", commit.sha]
-                    _, stdout, _ = run_command(command, check=False)
-                    return stdout
+                def provide_diff(item: CommitSummary) -> str:
+                    return diff_provider.get_diff(item)
 
                 analysis = ai_analyzer.analyze(
                     commit, include_diff=True, diff_provider=provide_diff
@@ -493,10 +530,14 @@ def view_commit(commit_sha: str, analyze: bool) -> None:
     help="number of days to traverse merge requests",
 )
 def traverse(project: Optional[str], days: int) -> None:
-    """traverse recent merge requests and analyze them with AI."""
+    """traverse recent merge requests and analyze them with AI.
+    
+    This command requires diff analysis for optimal results.
+    Install 'glab' CLI tool for best performance: brew install glab && glab auth login
+    """
     print_banner()
 
-    if not check_prerequisites(require_project=False):
+    if not check_prerequisites(require_project=False, check_glab_installation=True):
         sys.exit(1)
 
     if days <= 0:
@@ -539,17 +580,10 @@ def traverse(project: Optional[str], days: int) -> None:
 
         analyzed_items: List[tuple[MergeRequestSummary, Optional[str]]] = []
 
+        diff_provider = DiffProvider(project_path)
+
         def provide_diff(item: MergeRequestSummary) -> str:
-            command = [
-                "glab",
-                "mr",
-                "diff",
-                str(item.iid),
-                "--repo",
-                project_path,
-            ]
-            _, stdout, _ = run_command(command, check=False)
-            return stdout
+            return diff_provider.get_diff(item)
 
         def analyze_group(target_items: List[MergeRequestSummary], label: str) -> None:
             if not target_items:

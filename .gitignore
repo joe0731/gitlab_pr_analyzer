@@ -12,3 +12,23 @@ venv/
 
 # system files
 .DS_Store
+
+# package metadata
+PKG-INFO
+SOURCES.txt
+*/*.egg-info/*
+*.egg-info/PKG-INFO
+*.egg-info/SOURCES.txt
+*.egg-info/entry_points.txt
+*.egg-info/dependency_links.txt
+*.egg-info/requires.txt
+*.egg-info/top_level.txt
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# logs
+*.log

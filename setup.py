@@ -9,7 +9,7 @@ this_directory = Path(__file__).parent
 
 setup(
     name="gitlab-pr-analyzer",
-    version="0.4.0",
+    version="0.5.0",
     author="GitLab PR Analyzer Team",
     description="Tooling for collecting, searching and analyzing GitLab Merge Requests and commits",
     long_description="GitLab Merge Request Analyzer",
@@ -30,7 +30,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "gl-pr-analyzer=gitlab_pr_analyzer.cli:cli",
+            "gl-pr-ai=gitlab_pr_analyzer.cli:cli",
         ],
     },
 )

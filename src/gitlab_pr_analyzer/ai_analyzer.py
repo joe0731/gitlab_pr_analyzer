@@ -127,9 +127,11 @@ Focus on technical depth.
                         "```diff",
                         diff_content[:5000],
                         "```",
-                        "(Diff truncated for brevity)"
-                        if len(diff_content) > 5000
-                        else "",
+                        (
+                            "(Diff truncated for brevity)"
+                            if len(diff_content) > 5000
+                            else ""
+                        ),
                     ]
                 ).strip()
             )

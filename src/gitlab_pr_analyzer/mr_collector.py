@@ -84,7 +84,9 @@ class MergeRequestCollector:
 
         return {"open": open_converted, "merged": merged_converted}
 
-    def collect_by_months(self, months: int = 3) -> Dict[str, List[MergeRequestSummary]]:
+    def collect_by_months(
+        self, months: int = 3
+    ) -> Dict[str, List[MergeRequestSummary]]:
         """collect open and merged merge requests within given months."""
         if months <= 0:
             raise ValueError("months must be positive")

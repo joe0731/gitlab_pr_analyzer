@@ -30,14 +30,14 @@ console = Console()
 
 def print_banner() -> None:
     """print application banner."""
-    banner = f"
-    ╔═══════════════════════════════════════════════════════╗
-    ║                                                       ║
-    ║      {config.gitlab_instance_name} Merge Request Analyzer      ║
-    ║                                                       ║
-    ║     Intelligent MR and Commit Analysis Tool           ║
-    ║                                                       ║
-    ╚═══════════════════════════════════════════════════════╝
+    banner = f"""
+    ╔════════════════════════════════════════════════════════════════════╗
+    ║                                                                    ║
+    ║      {config.gitlab_instance_name} Merge Request Analyzer          ║
+    ║                                                                    ║
+    ║     Intelligent MR and Commit Analysis Tool                        ║
+    ║                                                                    ║
+    ╚════════════════════════════════════════════════════════════════════╝
     """
     console.print(banner, style="bold magenta")
 
@@ -250,7 +250,9 @@ def collect(project: Optional[str], months: int, days: Optional[int]) -> None:
         commit_collector = CommitCollector()
         commit_days = days if days else months * 30
         commits = commit_collector.collect_commits(days=commit_days)
-        console.print(f"\n[bold magenta]Collected {len(commits)} commits[/bold magenta]")
+        console.print(
+            f"\n[bold magenta]Collected {len(commits)} commits[/bold magenta]"
+        )
 
     except Exception as error:
         console.print(f"[red]Error: {error}[/red]")
@@ -314,7 +316,9 @@ def search(
         commits = commit_collector.collect_commits(days=days)
 
         matcher = Matcher(minimum_score=min_score)
-        results = matcher.search(merge_requests, commits, query, max_results=max_results)
+        results = matcher.search(
+            merge_requests, commits, query, max_results=max_results
+        )
 
         console.print()
         display_match_results(results)
@@ -400,6 +404,7 @@ def view_mr(mr_iid: int, project: Optional[str], analyze: bool) -> None:
         if analyze:
             ai_analyzer = AIAnalyzer()
             if ai_analyzer.is_available:
+
                 def provide_diff(_: MergeRequestSummary) -> str:
                     command = [
                         "glab",
@@ -412,7 +417,9 @@ def view_mr(mr_iid: int, project: Optional[str], analyze: bool) -> None:
                     _, stdout, _ = run_command(command, check=False)
                     return stdout
 
-                analysis = ai_analyzer.analyze(target, include_diff=True, diff_provider=provide_diff)
+                analysis = ai_analyzer.analyze(
+                    target, include_diff=True, diff_provider=provide_diff
+                )
                 if analysis:
                     ai_analyzer.display_analysis(target, analysis)
 
@@ -444,12 +451,15 @@ def view_commit(commit_sha: str, analyze: bool) -> None:
         if analyze:
             ai_analyzer = AIAnalyzer()
             if ai_analyzer.is_available:
+
                 def provide_diff(_: CommitSummary) -> str:
                     command = ["git", "show", commit.sha]
                     _, stdout, _ = run_command(command, check=False)
                     return stdout
 
-                analysis = ai_analyzer.analyze(commit, include_diff=True, diff_provider=provide_diff)
+                analysis = ai_analyzer.analyze(
+                    commit, include_diff=True, diff_provider=provide_diff
+                )
                 if analysis:
                     ai_analyzer.display_analysis(commit, analysis)
 
@@ -499,9 +509,7 @@ def traverse(project: Optional[str], days: int) -> None:
         merged_merge_requests = data.get("merged", [])
 
         console.print("\n[bold]Project:[/bold] {0}".format(project_path))
-        console.print(
-            "[bold]Traversal Window:[/bold] last {0} days".format(days)
-        )
+        console.print("[bold]Traversal Window:[/bold] last {0} days".format(days))
         console.print(
             "[bold magenta]Open MRs:[/bold magenta] {0}".format(
                 len(open_merge_requests)
@@ -514,7 +522,9 @@ def traverse(project: Optional[str], days: int) -> None:
         )
 
         if not open_merge_requests and not merged_merge_requests:
-            console.print("[yellow]no merge requests found in the specified range[/yellow]")
+            console.print(
+                "[yellow]no merge requests found in the specified range[/yellow]"
+            )
             return
 
         analyzed_items: List[tuple[MergeRequestSummary, Optional[str]]] = []
@@ -538,9 +548,7 @@ def traverse(project: Optional[str], days: int) -> None:
                 )
                 return
 
-            console.print(
-                "\n[bold cyan]Analyzing {0}...[/bold cyan]".format(label)
-            )
+            console.print("\n[bold cyan]Analyzing {0}...[/bold cyan]".format(label))
 
             total_items = len(target_items)
             index_value = 1
@@ -627,15 +635,19 @@ def interactive() -> None:
             console.print("  3. View commit by SHA")
             console.print("  4. Exit")
 
-            choice = Prompt.ask("[magenta]Select an option[/magenta]", choices=["1", "2", "3", "4"])
+            choice = Prompt.ask(
+                "[magenta]Select an option[/magenta]", choices=["1", "2", "3", "4"]
+            )
 
             if choice == "1":
                 query = Prompt.ask("\n[magenta]Enter search query[/magenta]")
                 results = matcher.search(merge_requests, commits, query)
                 display_match_results(results)
 
-                if results and ai_analyzer.is_available and Confirm.ask(
-                    "run AI analysis on top results?"
+                if (
+                    results
+                    and ai_analyzer.is_available
+                    and Confirm.ask("run AI analysis on top results?")
                 ):
                     analyzed = ai_analyzer.batch_analyze(
                         [r.item for r in results[:5]], include_diff=False

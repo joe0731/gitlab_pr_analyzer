@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: gitlab-pr-analyzer
-Version: 0.3.0
+Version: 0.4.0
 Summary: Tooling for collecting, searching and analyzing GitLab Merge Requests and commits
 Home-page: https://example.com/gitlab-pr-analyzer
 Author: GitLab PR Analyzer Team

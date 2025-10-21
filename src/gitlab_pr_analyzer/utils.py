@@ -156,7 +156,9 @@ def validate_project_path(project_path: str) -> bool:
 def detect_gitlab_project(host: str) -> Optional[str]:
     """detect GitLab project path from git remotes."""
     try:
-        returncode, stdout, _ = run_command(["git", "remote", "get-url", "origin"], check=False)
+        returncode, stdout, _ = run_command(
+            ["git", "remote", "get-url", "origin"], check=False
+        )
         if returncode != 0:
             return None
 
@@ -182,7 +184,7 @@ def detect_gitlab_project(host: str) -> Optional[str]:
             # http(s) format
             host_index = remote_url.find(normalized_host)
             if host_index != -1:
-                suffix = remote_url[host_index + len(normalized_host):]
+                suffix = remote_url[host_index + len(normalized_host) :]
                 if suffix.startswith("/"):
                     suffix = suffix[1:]
                 project_path = suffix

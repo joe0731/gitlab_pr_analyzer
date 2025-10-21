@@ -33,7 +33,9 @@ class Matcher:
     def __init__(self, minimum_score: int = 30):
         self.minimum_score = minimum_score
 
-    def _calculate_score(self, keywords: List[str], text: str, weight: float) -> Tuple[int, List[str]]:
+    def _calculate_score(
+        self, keywords: List[str], text: str, weight: float
+    ) -> Tuple[int, List[str]]:
         if not text:
             return 0, []
 
@@ -56,7 +58,9 @@ class Matcher:
         total = sum(scores)
         return min(100, total)
 
-    def match_merge_request(self, mr: MergeRequestSummary, keywords: List[str]) -> MatchResult:
+    def match_merge_request(
+        self, mr: MergeRequestSummary, keywords: List[str]
+    ) -> MatchResult:
         normalized_keywords = normalize_keywords(keywords)
 
         fields = {

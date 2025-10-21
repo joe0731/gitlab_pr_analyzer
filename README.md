@@ -63,7 +63,7 @@ export GITLAB_INSTANCE_NAME="Example GitLab"
 3. 执行示例命令：
 
 ```bash
-gl-pr-analyzer collect --project group/subgroup/project --months 3
+gl-pr-ai collect --project group/subgroup/project --months 3
 ```
 
 命令执行后会输出最新的打开与已合并 Merge Request 概览，并统计本地仓库对应时间窗口内的提交数量。
@@ -74,7 +74,7 @@ gl-pr-analyzer collect --project group/subgroup/project --months 3
 收集 Merge Request 与提交。
 
 ```bash
-gl-pr-analyzer collect --project group/project --months 6
+gl-pr-ai collect --project group/project --months 6
 ```
 
 - `--project/-p`：GitLab 项目路径，留空时工具会尝试根据当前仓库远程地址自动识别。
@@ -85,7 +85,7 @@ gl-pr-analyzer collect --project group/project --months 6
 按照关键字在 Merge Request 与提交之间匹配。
 
 ```bash
-gl-pr-analyzer search "payment bugfix" --project group/project --days 120 --min-score 40 --max-results 15
+gl-pr-ai search "payment bugfix" --project group/project --days 120 --min-score 40 --max-results 15
 ```
 
 - `--min-score`：最低匹配得分（0-100），默认 30。
@@ -96,7 +96,7 @@ gl-pr-analyzer search "payment bugfix" --project group/project --days 120 --min-
 查看单个 Merge Request 详情并可选触发 AI 总结。
 
 ```bash
-gl-pr-analyzer view_mr 1024 --project group/project --analyze
+gl-pr-ai view_mr 1024 --project group/project --analyze
 ```
 
 - 指定 Merge Request IID（非 ID）。
@@ -105,14 +105,14 @@ gl-pr-analyzer view_mr 1024 --project group/project --analyze
 查看单个提交详情。
 
 ```bash
-gl-pr-analyzer view_commit 3f5e9a1 --analyze
+gl-pr-ai view_commit 3f5e9a1 --analyze
 ```
 
 ### interactive
 启动交互式浏览体验。
 
 ```bash
-gl-pr-analyzer interactive
+gl-pr-ai interactive
 ```
 
 根据提示可选择搜索、查看 Merge Request 或提交详情，并在可用时触发 AI 分析。
@@ -121,7 +121,7 @@ gl-pr-analyzer interactive
 遍历最近的 Merge Request，逐条执行 AI 分析并可生成统一报告。
 
 ```bash
-gl-pr-analyzer traverse --project group/project --days 45
+gl-pr-ai traverse --project group/project --days 45
 ```
 
 - `--days/-d`：向前回溯的天数，默认 60。
@@ -142,9 +142,9 @@ gl-pr-analyzer traverse --project group/project --days 45
 
 ## 获取更多帮助
 ```bash
-gl-pr-analyzer --help
-gl-pr-analyzer collect --help
-gl-pr-analyzer search --help
+gl-pr-ai --help
+gl-pr-ai collect --help
+gl-pr-ai search --help
 ```
 
 欢迎根据团队需求扩展命令或结合现有 CI/CD 流程使用。若有新需求，可在 Issue 中描述使用场景与期望行为。

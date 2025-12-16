@@ -17,7 +17,7 @@ if readme_path.exists():
 
 setup(
     name="gitlab-pr-analyzer",
-    version="0.9.2",
+    version="0.9.3",
     author="GitLab PR Analyzer Team",
     description="Intelligent tool for collecting, analyzing, and summarizing GitLab Merge Requests and commits",
     long_description=long_description,
@@ -31,7 +31,6 @@ setup(
         "rich>=13.0.0",
         "requests>=2.31.0",
         "python-gitlab>=3.15.0",
-        "gitpython>=3.1.40",
         "python-dateutil>=2.8.2",
         "fuzzywuzzy>=0.18.0",
         "python-levenshtein>=0.21.0",

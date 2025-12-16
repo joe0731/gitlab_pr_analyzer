@@ -24,7 +24,7 @@ from .mr_collector import MergeRequestCollector, MergeRequestSummary
 from .mr_exporter import MRJSONExporter
 from .smart_search_analyzer import SmartSearchAnalyzer
 from .gitlab_client import GitLabClient
-from .utils import check_git, check_glab, detect_gitlab_project, format_datetime
+from .utils import check_glab, format_datetime
 
 console = Console()
 
@@ -60,11 +60,6 @@ def check_prerequisites() -> bool:
 
     errors: List[str] = []
 
-    if not check_git():
-        errors.append("git is not installed or not in PATH")
-    else:
-        console.print("[green]✓ git found[/green]")
-
     if not config.gitlab_host:
         errors.append("GITLAB_HOST is missing")
 
@@ -88,56 +83,25 @@ def check_prerequisites() -> bool:
 
 
 def resolve_repo_identifier(repo: Optional[str]) -> str:
-    """resolve GitLab project path using option or git remote."""
-    if repo:
-        cleaned = str(repo or "").strip()
-        if not cleaned:
-            raise click.UsageError(
-                "repo is empty; provide group/subgroup/project or a local repo directory"
-            )
+    """resolve GitLab project path (API-only)."""
+    cleaned = str(repo or "").strip()
+    if not cleaned:
+        raise click.UsageError(
+            "missing --repo. provide GitLab project path like group/subgroup/project"
+        )
 
-        if cleaned.startswith("./") and len(cleaned) > 2:
-            cleaned = cleaned[2:]
+    if cleaned.startswith("./") and len(cleaned) > 2:
+        cleaned = cleaned[2:]
 
-        # allow passing local repo directory, e.g. '.', './TensorRT', 'TensorRT/'
-        while cleaned.endswith("/") and len(cleaned) > 1:
-            cleaned = cleaned[:-1]
+    while cleaned.endswith("/") and len(cleaned) > 1:
+        cleaned = cleaned[:-1]
 
-        candidate_dir = Path(cleaned)
-        if candidate_dir.exists() and candidate_dir.is_dir():
-            if not config.gitlab_host:
-                raise click.UsageError(
-                    "GITLAB_HOST must be set to detect project path from a local repo directory"
-                )
-            detected = detect_gitlab_project(config.gitlab_host, repo_dir=str(candidate_dir))
-            if detected:
-                console.print("[cyan]detected project: {0}[/cyan]".format(detected))
-                return detected
-            raise click.UsageError(
-                "unable to detect project from local repo directory '{0}'. "
-                "ensure it has a GitLab origin remote, or provide --repo as group/subgroup/project.".format(
-                    cleaned
-                )
-            )
+    if cleaned in {".", "./"}:
+        raise click.UsageError(
+            "invalid repo identifier '.'; provide GitLab project path like group/subgroup/project"
+        )
 
-        if cleaned in {".", "./"}:
-            raise click.UsageError(
-                "invalid repo identifier '.'; provide group/subgroup/project or run inside a git repo"
-            )
-
-        return cleaned
-
-    if not config.gitlab_host:
-        raise click.UsageError("GITLAB_HOST must be set to auto-detect project path")
-
-    detected = detect_gitlab_project(config.gitlab_host)
-    if detected:
-        console.print("[cyan]detected project: {0}[/cyan]".format(detected))
-        return detected
-
-    raise click.UsageError(
-        "unable to detect project from git remote. please provide --repo explicitly."
-    )
+    return cleaned
 
 
 def resolve_json_export_flag(
@@ -337,7 +301,7 @@ def cli() -> None:
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project or local repo directory (optional; used to verify project access)",
+    help="Repository in format group/subgroup/project (optional; used to verify project access)",
 )
 @click.option("--json", "as_json", is_flag=True, help="Output raw JSON for automation")
 def check(repo: Optional[str], as_json: bool) -> None:
@@ -346,14 +310,6 @@ def check(repo: Optional[str], as_json: bool) -> None:
 
     ok = True
     details: dict = {"ok": False, "checks": [], "repo": repo}
-
-    git_ok = check_git()
-    details["checks"].append({"name": "git", "ok": git_ok})
-    if git_ok:
-        console.print("[green]✓ git found[/green]")
-    else:
-        console.print("[red]✗ git not found[/red]")
-        ok = False
 
     host_ok = bool(config.gitlab_host)
     token_ok = bool(config.gitlab_token)
@@ -435,7 +391,8 @@ def check(repo: Optional[str], as_json: bool) -> None:
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project or local repo directory (auto-detect if not specified)",
+    required=True,
+    help="Repository in format group/subgroup/project",
 )
 @click.option(
     "--months",
@@ -487,7 +444,7 @@ def collect(
         save_json_flag, no_save_json_flag, default=False, command_name="collect"
     )
 
-    project_path = resolve_repo_identifier(repo)
+        project_path = resolve_repo_identifier(repo)
     try:
         mr_collector = MergeRequestCollector(project_path)
         console.print("\n[bold]Repository:[/bold] {0}\n".format(project_path))
@@ -502,7 +459,7 @@ def collect(
             "  • Merged MRs (last {0} months): {1}".format(months, len(merged_mrs))
         )
 
-        commit_collector = CommitCollector()
+        commit_collector = CommitCollector(project_path)
         commits = commit_collector.collect_commits(days=months * 30)
         console.print("  • Commits (last {0} months): {1}".format(months, len(commits)))
         console.print()
@@ -542,7 +499,8 @@ def collect(
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project or local repo directory (auto-detect if not specified)",
+    required=True,
+    help="Repository in format group/subgroup/project",
 )
 @click.option("--months", "-m", type=int, default=3, show_default=True)
 @click.option("--min-score", type=int, default=30, show_default=True)
@@ -642,7 +600,7 @@ def search(
         data = mr_collector.collect_by_months(months=months)
         merge_requests = data.get("open", []) + data.get("merged", [])
 
-        commit_collector = CommitCollector()
+        commit_collector = CommitCollector(project_path)
         commits = commit_collector.collect_commits(days=months * 30)
 
         matcher = Matcher(minimum_score=min_score)
@@ -749,7 +707,8 @@ def search(
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project or local repo directory (auto-detect if not specified)",
+    required=True,
+    help="Repository in format group/subgroup/project",
 )
 @click.option(
     "--ai",
@@ -871,6 +830,12 @@ def view_pr(
 @cli.command("view-commit", context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument("commit_sha")
 @click.option(
+    "--repo",
+    "-r",
+    required=True,
+    help="Repository in format group/subgroup/project",
+)
+@click.option(
     "--ai",
     "use_ai",
     is_flag=True,
@@ -886,7 +851,9 @@ def view_pr(
     hidden=True,
     help="alias of --ai",
 )
-def view_commit(commit_sha: str, use_ai: bool, use_ai_legacy: bool) -> None:
+def view_commit(
+    commit_sha: str, repo: Optional[str], use_ai: bool, use_ai_legacy: bool
+) -> None:
     """View details of a specific commit."""
     print_banner()
 
@@ -897,7 +864,8 @@ def view_commit(commit_sha: str, use_ai: bool, use_ai_legacy: bool) -> None:
         use_ai = True
 
     try:
-        commit_collector = CommitCollector()
+        project_path = resolve_repo_identifier(repo)
+        commit_collector = CommitCollector(project_path)
         commit = commit_collector.get_commit_details(commit_sha)
         if not commit:
             console.print("[red]Commit {0} not found[/red]".format(commit_sha))
@@ -905,7 +873,7 @@ def view_commit(commit_sha: str, use_ai: bool, use_ai_legacy: bool) -> None:
 
         render_commit_panel(commit)
 
-        diff_provider = DiffProvider(".")
+        diff_provider = DiffProvider(project_path)
         if Confirm.ask("\nShow diff?", default=True):
             diff_text = diff_provider.get_commit_diff(commit)
             display_diff_text(diff_text, max_lines=300)
@@ -933,7 +901,8 @@ def view_commit(commit_sha: str, use_ai: bool, use_ai_legacy: bool) -> None:
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project or local repo directory (auto-detect if not specified)",
+    required=True,
+    help="Repository in format group/subgroup/project",
 )
 @click.option("--days", "-d", type=int, default=60, show_default=True)
 @click.option(
@@ -1163,7 +1132,7 @@ def interactive(use_ai: bool, use_ai_legacy: bool) -> None:
 
     try:
         repo_input = Prompt.ask(
-            "\n[magenta]Repository (group/subgroup/project, or press Enter to auto-detect)[/magenta]",
+            "\n[magenta]Repository (group/subgroup/project)[/magenta]",
             default="",
         )
         months = int(Prompt.ask("[magenta]Months to look back[/magenta]", default="3"))
@@ -1178,7 +1147,9 @@ def interactive(use_ai: bool, use_ai_legacy: bool) -> None:
         data = mr_collector.collect_by_months(months=months)
         merge_requests = data.get("open", []) + data.get("merged", [])
 
-        commit_collector = CommitCollector()
+        commit_collector = CommitCollector(project_path)
+        commits = commit_collector.collect_commits(days=months * 30)
+        commit_collector = CommitCollector(project_path)
         commits = commit_collector.collect_commits(days=months * 30)
 
         diff_provider = DiffProvider(project_path)
@@ -1259,6 +1230,12 @@ def interactive(use_ai: bool, use_ai_legacy: bool) -> None:
 # legacy aliases for backward compatibility
 cli.add_command(view_pr, name="view_mr")
 cli.add_command(view_commit, name="view_commit")
+
+# hide legacy alias commands from help to avoid confusion
+if "view_mr" in cli.commands:
+    cli.commands["view_mr"].hidden = True
+if "view_commit" in cli.commands:
+    cli.commands["view_commit"].hidden = True
 
 
 if __name__ == "__main__":

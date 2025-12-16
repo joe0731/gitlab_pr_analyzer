@@ -29,16 +29,16 @@ Search for merge requests and commits.
 
 ```bash
 # basic
-glpa search "query"
+glpa search "query" -r group/subgroup/project
 
 # with AI analysis (English output)
-glpa search "query" --ai
+glpa search "query" --ai -r group/subgroup/project
 
 # with AI analysis (Chinese output)
-glpa search "query" --ai -cn
+glpa search "query" --ai -cn -r group/subgroup/project
 
 # options
---repo, -r       Target project path (group/subgroup/project) or local repo directory (default: auto-detect from git remote)
+--repo, -r       Target project path (group/subgroup/project). Required.
 --months, -m     Months to look back (default: 3)
 --min-score      Minimum match score (default: 30)
 --max-results    Maximum number of results (default: 20)
@@ -53,23 +53,23 @@ glpa search "query" --ai -cn
 Collect statistics (open/merged MRs, commits).
 
 ```bash
-glpa collect --months 6 --save-json --output-dir ./exports
+glpa collect --months 6 --save-json --output-dir ./exports -r group/subgroup/project
 ```
 
 ### `traverse`
 Batch analyze recent merge requests for reports.
 
 ```bash
-glpa traverse --days 7 --save-json
-glpa traverse --days 7 --save-json -cn
+glpa traverse --days 7 --save-json -r group/subgroup/project
+glpa traverse --days 7 --save-json --ai -cn -r group/subgroup/project
 ```
 
 ### `view-pr` / `view-commit`
 View details of a specific item.
 
 ```bash
-glpa view-pr 1024 --ai --output-dir ./exports   # JSON export enabled by default
-glpa view-commit <SHA>
+glpa view-pr 1024 --ai --output-dir ./exports -r group/subgroup/project   # JSON export enabled by default
+glpa view-commit <SHA> -r group/subgroup/project
 ```
 
 ### JSON Export Notes

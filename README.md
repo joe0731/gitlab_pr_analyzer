@@ -8,7 +8,6 @@ A command-line tool for intelligently collecting, analyzing, and summarizing Git
 
 ### Prerequisites
 - **Python 3.8+**
-- **Git**
 - **GitLab access**
   - `GITLAB_HOST` (e.g. `https://gitlab.example.com`)
   - `GITLAB_TOKEN` (PAT with `read_api` or `api` scope)
@@ -67,20 +66,22 @@ glpa check
 # 1. Interactive Mode (best for starting)
 glpa interactive
 
+# project path tip: from a URL like https://gitlab.example.com/group/subgroup/project use: --repo group/subgroup/project
+
 # 2. Search with AI analysis (English output)
-glpa search "authentication bug" --ai
+glpa search "authentication bug" --ai -r group/subgroup/project
 
 # 3. Search with AI analysis (Chinese output)
-glpa search "authentication bug" --ai -cn
+glpa search "authentication bug" --ai -cn -r group/subgroup/project
 
 # 4. Collect data
-glpa collect --save-json
+glpa collect --save-json -r group/subgroup/project
 
 # 5. Generate report + export datasets
-glpa traverse --days 7 --save-json
+glpa traverse --days 7 --save-json -r group/subgroup/project
 
 # optional: enable AI analysis for traverse
-glpa traverse --days 7 --save-json --ai -cn
+glpa traverse --days 7 --save-json --ai -cn -r group/subgroup/project
 ```
 
 For detailed command usage, see [USAGE.md](USAGE.md).

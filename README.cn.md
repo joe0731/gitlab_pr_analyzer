@@ -62,10 +62,10 @@ glpa check
 glpa interactive
 
 glpa search "payment bugfix"
-glpa search "payment bugfix" --ai -cn
+glpa search "payment bugfix" --ai -cn -r group/subgroup/project
 
-glpa view-pr 1024 --ai
-glpa traverse --days 7 --save-json
+glpa view-pr 1024 --ai -r group/subgroup/project
+glpa traverse --days 7 --save-json -r group/subgroup/project
 ```
 
 详细参数请看 [USAGE.cn.md](USAGE.cn.md)。

@@ -46,15 +46,6 @@ def run_command(
         raise RuntimeError(f"failed to execute command: {error}") from error
 
 
-def check_git() -> bool:
-    """check if git is installed."""
-    try:
-        returncode, _, _ = run_command(["git", "--version"], check=False)
-        return returncode == 0
-    except Exception:
-        return False
-
-
 def check_glab() -> bool:
     """check if glab is installed."""
     try:
@@ -187,58 +178,6 @@ def validate_project_path(project_path: str) -> bool:
         return False
 
     return True
-
-
-def detect_gitlab_project(host: str, repo_dir: Optional[str] = None) -> Optional[str]:
-    """detect GitLab project path from git remotes."""
-    try:
-        returncode, stdout, _ = run_command(
-            ["git", "remote", "get-url", "origin"], check=False, cwd=repo_dir
-        )
-        if returncode != 0:
-            return None
-
-        remote_url = stdout.strip()
-        if not remote_url:
-            return None
-
-        normalized_host = host
-        if normalized_host.endswith("/"):
-            normalized_host = normalized_host[:-1]
-
-        if normalized_host not in remote_url:
-            return None
-
-        project_path = None
-
-        if remote_url.startswith("git@"):  # ssh format
-            # example: git@host:group/project.git
-            parts = remote_url.split(":", 1)
-            if len(parts) == 2:
-                project_path = parts[1]
-        else:
-            # http(s) format
-            host_index = remote_url.find(normalized_host)
-            if host_index != -1:
-                suffix = remote_url[host_index + len(normalized_host) :]
-                if suffix.startswith("/"):
-                    suffix = suffix[1:]
-                project_path = suffix
-
-        if project_path is None:
-            return None
-
-        if project_path.endswith(".git"):
-            project_path = project_path[:-4]
-
-        project_path = project_path.strip("/")
-        if not validate_project_path(project_path):
-            return None
-
-        return project_path
-
-    except Exception:
-        return None
 
 
 def ensure_output_directory(path: Path) -> None:

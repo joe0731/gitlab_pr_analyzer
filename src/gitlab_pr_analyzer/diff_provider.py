@@ -82,35 +82,6 @@ class DiffProvider:
             console.print(f"[yellow]API diff fetch failed: {error}[/yellow]")
             return None
 
-    def _get_mr_diff_via_git(self, mr: MergeRequestSummary) -> Optional[str]:
-        """get merge request diff using git commands as fallback."""
-        if not mr.source_branch or not mr.target_branch:
-            return None
-
-        try:
-            # try to get diff between source and target branches
-            command = [
-                "git",
-                "diff",
-                f"origin/{mr.target_branch}...origin/{mr.source_branch}"
-            ]
-            _, stdout, stderr = run_command(command, check=False)
-            
-            if stderr and "unknown revision" in stderr.lower():
-                # try without origin prefix
-                command = [
-                    "git",
-                    "diff",
-                    f"{mr.target_branch}...{mr.source_branch}"
-                ]
-                _, stdout, _ = run_command(command, check=False)
-            
-            return stdout if stdout else None
-            
-        except Exception as error:
-            console.print(f"[yellow]git diff failed: {error}[/yellow]")
-            return None
-
     def get_merge_request_diff(self, mr: MergeRequestSummary) -> Optional[str]:
         """get merge request diff using multiple fallback strategies."""
         console.print(f"[dim]Fetching diff for MR !{mr.iid}...[/dim]")
@@ -128,21 +99,34 @@ class DiffProvider:
             console.print(f"[dim]✓ Got diff via API[/dim]")
             return diff
         
-        # strategy 3: try git commands as last resort
-        diff = self._get_mr_diff_via_git(mr)
-        if diff:
-            console.print(f"[dim]✓ Got diff via git[/dim]")
-            return diff
-        
         console.print(f"[yellow]⚠ Could not fetch diff for MR !{mr.iid}[/yellow]")
         return None
 
     def get_commit_diff(self, commit: CommitSummary) -> Optional[str]:
-        """get commit diff using git show command."""
+        """get commit diff using GitLab API."""
         try:
-            command = ["git", "show", commit.sha]
-            _, stdout, _ = run_command(command, check=False)
-            return stdout if stdout else None
+            console.print(f"[dim]Fetching diff for commit {commit.short_sha}...[/dim]")
+            commit_obj = self.project.commits.get(commit.sha)
+            changes = commit_obj.diff()
+            if not isinstance(changes, list):
+                return None
+
+            diff_lines = []
+            for change in changes:
+                old_path = change.get("old_path", "unknown")
+                new_path = change.get("new_path", old_path)
+                diff_text = change.get("diff")
+
+                diff_lines.append(f"--- a/{old_path}")
+                diff_lines.append(f"+++ b/{new_path}")
+                if diff_text:
+                    diff_lines.append(diff_text)
+                diff_lines.append("")
+
+            if not diff_lines:
+                return None
+            console.print(f"[dim]✓ Got commit diff via API[/dim]")
+            return "\n".join(diff_lines)
         except Exception as error:
             console.print(f"[yellow]failed to get commit diff: {error}[/yellow]")
             return None

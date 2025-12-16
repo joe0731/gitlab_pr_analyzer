@@ -29,16 +29,16 @@ glpa interactive
 
 ```bash
 # 基础搜索
-glpa search "query"
+glpa search "query" -r group/subgroup/project
 
 # 带 AI 分析（英文输出）
-glpa search "query" --ai
+glpa search "query" --ai -r group/subgroup/project
 
 # 带 AI 分析（中文输出）
-glpa search "query" --ai -cn
+glpa search "query" --ai -cn -r group/subgroup/project
 
 # 常用参数
---repo, -r       目标项目路径（group/subgroup/project）或本地 repo 目录（默认：从 git remote 自动识别）
+--repo, -r       目标项目路径（group/subgroup/project），必填
 --months, -m     回溯月数（默认：3）
 --min-score      最小匹配分数（默认：30）
 --max-results    最大返回条数（默认：20）
@@ -53,23 +53,23 @@ glpa search "query" --ai -cn
 收集统计信息（open/merged MR、commit 数量）。
 
 ```bash
-glpa collect --months 6 --save-json --output-dir ./exports
+glpa collect --months 6 --save-json --output-dir ./exports -r group/subgroup/project
 ```
 
 ### `traverse`
 遍历近期 MR 并批量做 AI 分析，可自动生成报告。
 
 ```bash
-glpa traverse --days 7 --save-json
-glpa traverse --days 7 --save-json -cn
+glpa traverse --days 7 --save-json -r group/subgroup/project
+glpa traverse --days 7 --save-json --ai -cn -r group/subgroup/project
 ```
 
 ### `view-pr` / `view-commit`
 查看单个条目详情。
 
 ```bash
-glpa view-pr 1024 --ai --output-dir ./exports   # 默认导出 JSON，可用 --no-save-json 关闭
-glpa view-commit <SHA>
+glpa view-pr 1024 --ai --output-dir ./exports -r group/subgroup/project   # 默认导出 JSON，可用 --no-save-json 关闭
+glpa view-commit <SHA> -r group/subgroup/project
 ```
 
 ## JSON 导出说明

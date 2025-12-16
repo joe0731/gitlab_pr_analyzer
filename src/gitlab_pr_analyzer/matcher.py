@@ -126,15 +126,31 @@ class Matcher:
         max_results: int = 20,
     ) -> List[MatchResult]:
         keywords = normalize_keywords(query.split())
+        return self.search_with_keywords(
+            merge_requests=merge_requests,
+            commits=commits,
+            keywords=keywords,
+            max_results=max_results,
+        )
+
+    def search_with_keywords(
+        self,
+        merge_requests: Sequence[MergeRequestSummary],
+        commits: Sequence[CommitSummary],
+        keywords: List[str],
+        max_results: int = 20,
+    ) -> List[MatchResult]:
+        """search using provided keywords."""
+        normalized_keywords = normalize_keywords(keywords)
         results: List[MatchResult] = []
 
         for mr in merge_requests:
-            match = self.match_merge_request(mr, keywords)
+            match = self.match_merge_request(mr, normalized_keywords)
             if match.score >= self.minimum_score:
                 results.append(match)
 
         for commit in commits:
-            match = self.match_commit(commit, keywords)
+            match = self.match_commit(commit, normalized_keywords)
             if match.score >= self.minimum_score:
                 results.append(match)
 

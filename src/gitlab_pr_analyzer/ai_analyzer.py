@@ -19,9 +19,10 @@ console = Console()
 class AIAnalyzer:
     """analyzer for summarizing merge requests and commits using AI."""
 
-    def __init__(self, cursor_agent_path: Optional[str] = None):
+    def __init__(self, cursor_agent_path: Optional[str] = None, language: str = "en"):
         """initialize AI analyzer."""
         self.cursor_agent_path = cursor_agent_path or config.cursor_agent_path
+        self.language = language
         self.is_available = self._check_availability()
 
     def _check_availability(self) -> bool:
@@ -85,37 +86,9 @@ class AIAnalyzer:
 - **Parents**: {', '.join(item.parents) if item.parents else 'None'}
 """
 
-        if analysis_type == "summary":
-            task = """
-Please provide a concise summary of this change:
-1. What is the main purpose of this change?
-2. Which key functionality or components are affected?
-3. What is the overall impact on the project?
-
-Keep the summary under 200 words.
-"""
-        elif analysis_type == "impact":
-            task = """
-Please analyze the impact of this change:
-1. What areas of the codebase are affected?
-2. What potential risks or regression areas exist?
-3. Are there dependencies on specific environments or services?
-4. What testing or validation is recommended before deployment?
-
-Provide a detailed but concise analysis.
-"""
-        elif analysis_type == "technical":
-            task = """
-Please provide a technical analysis:
-1. What implementation approach was used?
-2. Are there notable design decisions?
-3. How does this integrate with existing architecture?
-4. Are there performance, security, or compliance considerations?
-
-Focus on technical depth.
-"""
-        else:
-            task = "Please analyze this change and provide actionable insights."
+        task = self._get_english_task(analysis_type)
+        if self.language == "cn":
+            task = self._get_chinese_task(analysis_type)
 
         prompt_sections = [base_info.strip(), task.strip()]
 
@@ -137,6 +110,72 @@ Focus on technical depth.
             )
 
         return "\n\n".join(section for section in prompt_sections if section)
+
+    def _get_english_task(self, analysis_type: str) -> str:
+        """get English task for analysis."""
+        if analysis_type == "summary":
+            return """
+Please provide a concise summary of this change:
+1. What is the main purpose of this change?
+2. Which key functionality or components are affected?
+3. What is the overall impact on the project?
+
+Keep the summary under 200 words.
+"""
+        if analysis_type == "impact":
+            return """
+Please analyze the impact of this change:
+1. What areas of the codebase are affected?
+2. What potential risks or regression areas exist?
+3. Are there dependencies on specific environments or services?
+4. What testing or validation is recommended before deployment?
+
+Provide a detailed but concise analysis.
+"""
+        if analysis_type == "technical":
+            return """
+Please provide a technical analysis:
+1. What implementation approach was used?
+2. Are there notable design decisions?
+3. How does this integrate with existing architecture?
+4. Are there performance, security, or compliance considerations?
+
+Focus on technical depth.
+"""
+        return "Please analyze this change and provide actionable insights."
+
+    def _get_chinese_task(self, analysis_type: str) -> str:
+        """get Chinese task for analysis."""
+        if analysis_type == "summary":
+            return """
+请用中文提供此变更的简要总结：
+1. 此变更的主要目的是什么？
+2. 受影响的关键功能或组件有哪些？
+3. 对项目的整体影响是什么？
+
+请保持总结在 200 字以内，使用左对齐格式。
+"""
+        if analysis_type == "impact":
+            return """
+请用中文分析此变更的影响：
+1. 代码库中哪些区域受到影响？
+2. 有哪些潜在的风险或回归点？
+3. 是否依赖特定环境或服务？
+4. 建议进行哪些测试或验证？
+
+请提供详细但简洁的分析，使用左对齐格式。
+"""
+        if analysis_type == "technical":
+            return """
+请用中文提供技术分析：
+1. 使用了什么实现方案？
+2. 有哪些值得注意的设计决策？
+3. 这如何融入现有架构？
+4. 是否存在性能、安全或合规方面的考虑？
+
+请专注于技术深度，使用左对齐格式。
+"""
+        return "请用中文分析此变更并提供可执行的建议，使用左对齐格式。"
 
     def analyze(
         self,

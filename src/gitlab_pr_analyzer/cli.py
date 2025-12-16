@@ -13,6 +13,14 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 from rich.table import Table
 
 from .ai_analyzer import AIAnalyzer
@@ -120,6 +128,39 @@ def resolve_json_export_flag(
     if disable_flag:
         return False
     return default
+
+
+def export_mr_json_with_progress(
+    exporter: MRJSONExporter, mr_pairs: List[Tuple[int, Optional[str]]]
+) -> int:
+    """export mr json files with progress and eta."""
+    total = len(mr_pairs)
+    if total == 0:
+        return 0
+
+    saved = 0
+    with Progress(
+        SpinnerColumn(),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total}"),
+        TimeElapsedColumn(),
+        TimeRemainingColumn(),
+        TextColumn("{task.description}"),
+        console=console,
+    ) as progress:
+        task_id = progress.add_task("saving mr json...", total=total)
+        for iid, title in mr_pairs:
+            progress.update(task_id, description="saving MR !{0}".format(iid))
+            try:
+                exporter.export_mr(iid, title_hint=title)
+                saved += 1
+            except Exception as exc:
+                console.print(
+                    "[red]Failed to export MR !{0}: {1}[/red]".format(iid, exc)
+                )
+            progress.advance(task_id, 1)
+
+    return saved
 
 
 def display_results_table(results: List[MatchResult]) -> None:
@@ -471,15 +512,7 @@ def collect(
                 pairs.append((mr.iid, mr.title))
             for mr in merged_mrs:
                 pairs.append((mr.iid, mr.title))
-            saved = 0
-            for iid, title in pairs:
-                try:
-                    exporter.export_mr(iid, title_hint=title)
-                    saved += 1
-                except Exception as exc:
-                    console.print(
-                        "[red]Failed to export MR !{0}: {1}[/red]".format(iid, exc)
-                    )
+            saved = export_mr_json_with_progress(exporter, pairs)
             if saved == 0:
                 console.print("[yellow]No MR JSON files were created[/yellow]")
             else:
@@ -664,7 +697,11 @@ def search(
                 if save_json and exporter and isinstance(item, MergeRequestSummary):
                     try:
                         path = exporter.export_mr(item.iid, title_hint=item.title)
-                        console.print("[green]✓ JSON saved: {0}[/green]\n".format(path))
+                        console.print(
+                            "[green]✓ JSON saved ({0}/{1}): {2}[/green]\n".format(
+                                idx, len(items_to_analyze), path
+                            )
+                        )
                     except Exception as exc:
                         console.print(
                             "[red]Failed to export MR !{0}: {1}[/red]\n".format(
@@ -680,22 +717,22 @@ def search(
                 Path(report_file).write_text(report, encoding="utf-8")
                 console.print("[green]✓ Report saved to: {0}[/green]".format(report_file))
 
-        if (not analyze) and save_json:
+        if (not use_ai) and save_json:
             exporter = MRJSONExporter(project_path=project_path, output_dir=output_dir)
-            saved = 0
+            pairs: List[Tuple[int, Optional[str]]] = []
             for result in results:
                 if isinstance(result.item, MergeRequestSummary):
-                    try:
-                        exporter.export_mr(result.item.iid, title_hint=result.item.title)
-                        saved += 1
-                    except Exception as exc:
-                        console.print(
-                            "[red]Failed to export MR !{0}: {1}[/red]".format(
-                                result.item.iid, exc
-                            )
-                        )
+                    pairs.append((result.item.iid, result.item.title))
+
+            saved = export_mr_json_with_progress(exporter, pairs)
             if saved == 0:
                 console.print("[yellow]No MR JSON files were created[/yellow]")
+            else:
+                console.print(
+                    "[green]✓ Exported {0} MR file(s) to {1}[/green]".format(
+                        saved, str(output_dir)
+                    )
+                )
 
     except Exception as exc:
         console.print("[red]Error: {0}[/red]".format(exc))
@@ -1045,7 +1082,9 @@ def traverse(
                         try:
                             path = exporter.export_mr(mr.iid, title_hint=mr.title)
                             console.print(
-                                "[green]✓ JSON saved: {0}[/green]\n".format(path)
+                                "[green]✓ JSON saved ({0}/{1}): {2}[/green]\n".format(
+                                    index_value, total, path
+                                )
                             )
                         except Exception as exc:
                             console.print(
@@ -1072,23 +1111,13 @@ def traverse(
         else:
             if save_json:
                 exporter = MRJSONExporter(project_path=project_path, output_dir=output_dir)
-                saved = 0
+                pairs: List[Tuple[int, Optional[str]]] = []
                 for mr in merged_mrs:
-                    try:
-                        exporter.export_mr(mr.iid, title_hint=mr.title)
-                        saved += 1
-                    except Exception as exc:
-                        console.print(
-                            "[red]Failed to export MR !{0}: {1}[/red]".format(mr.iid, exc)
-                        )
+                    pairs.append((mr.iid, mr.title))
                 for mr in open_mrs:
-                    try:
-                        exporter.export_mr(mr.iid, title_hint=mr.title)
-                        saved += 1
-                    except Exception as exc:
-                        console.print(
-                            "[red]Failed to export MR !{0}: {1}[/red]".format(mr.iid, exc)
-                        )
+                    pairs.append((mr.iid, mr.title))
+
+                saved = export_mr_json_with_progress(exporter, pairs)
                 if saved == 0:
                     console.print("[yellow]No MR JSON files were created[/yellow]")
                 else:

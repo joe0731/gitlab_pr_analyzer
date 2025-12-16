@@ -42,6 +42,10 @@ class GitLabClient:
         if cleaned.startswith("./") and len(cleaned) > 2:
             cleaned = cleaned[2:]
 
+        # remove trailing slashes for convenience
+        while cleaned.endswith("/") and len(cleaned) > 1:
+            cleaned = cleaned[:-1]
+
         if not cleaned.isdigit() and not validate_project_path(cleaned):
             raise RuntimeError(
                 "invalid project identifier '{0}'. expected group/subgroup/project or numeric id".format(

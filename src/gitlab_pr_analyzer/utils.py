@@ -189,11 +189,11 @@ def validate_project_path(project_path: str) -> bool:
     return True
 
 
-def detect_gitlab_project(host: str) -> Optional[str]:
+def detect_gitlab_project(host: str, repo_dir: Optional[str] = None) -> Optional[str]:
     """detect GitLab project path from git remotes."""
     try:
         returncode, stdout, _ = run_command(
-            ["git", "remote", "get-url", "origin"], check=False
+            ["git", "remote", "get-url", "origin"], check=False, cwd=repo_dir
         )
         if returncode != 0:
             return None

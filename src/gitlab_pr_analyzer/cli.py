@@ -90,13 +90,41 @@ def check_prerequisites() -> bool:
 def resolve_repo_identifier(repo: Optional[str]) -> str:
     """resolve GitLab project path using option or git remote."""
     if repo:
-        cleaned = repo.strip()
-        if cleaned in {"", ".", "./"}:
+        cleaned = str(repo or "").strip()
+        if not cleaned:
             raise click.UsageError(
-                "invalid repo identifier '.'; provide full GitLab path like group/subgroup/project"
+                "repo is empty; provide group/subgroup/project or a local repo directory"
             )
+
         if cleaned.startswith("./") and len(cleaned) > 2:
             cleaned = cleaned[2:]
+
+        # allow passing local repo directory, e.g. '.', './TensorRT', 'TensorRT/'
+        while cleaned.endswith("/") and len(cleaned) > 1:
+            cleaned = cleaned[:-1]
+
+        candidate_dir = Path(cleaned)
+        if candidate_dir.exists() and candidate_dir.is_dir():
+            if not config.gitlab_host:
+                raise click.UsageError(
+                    "GITLAB_HOST must be set to detect project path from a local repo directory"
+                )
+            detected = detect_gitlab_project(config.gitlab_host, repo_dir=str(candidate_dir))
+            if detected:
+                console.print("[cyan]detected project: {0}[/cyan]".format(detected))
+                return detected
+            raise click.UsageError(
+                "unable to detect project from local repo directory '{0}'. "
+                "ensure it has a GitLab origin remote, or provide --repo as group/subgroup/project.".format(
+                    cleaned
+                )
+            )
+
+        if cleaned in {".", "./"}:
+            raise click.UsageError(
+                "invalid repo identifier '.'; provide group/subgroup/project or run inside a git repo"
+            )
+
         return cleaned
 
     if not config.gitlab_host:
@@ -309,7 +337,7 @@ def cli() -> None:
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project (optional; used to verify project access)",
+    help="Repository in format group/subgroup/project or local repo directory (optional; used to verify project access)",
 )
 @click.option("--json", "as_json", is_flag=True, help="Output raw JSON for automation")
 def check(repo: Optional[str], as_json: bool) -> None:
@@ -407,7 +435,7 @@ def check(repo: Optional[str], as_json: bool) -> None:
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project (auto-detect if not specified)",
+    help="Repository in format group/subgroup/project or local repo directory (auto-detect if not specified)",
 )
 @click.option(
     "--months",
@@ -514,7 +542,7 @@ def collect(
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project (auto-detect if not specified)",
+    help="Repository in format group/subgroup/project or local repo directory (auto-detect if not specified)",
 )
 @click.option("--months", "-m", type=int, default=3, show_default=True)
 @click.option("--min-score", type=int, default=30, show_default=True)
@@ -721,7 +749,7 @@ def search(
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project (auto-detect if not specified)",
+    help="Repository in format group/subgroup/project or local repo directory (auto-detect if not specified)",
 )
 @click.option(
     "--ai",
@@ -905,7 +933,7 @@ def view_commit(commit_sha: str, use_ai: bool, use_ai_legacy: bool) -> None:
 @click.option(
     "--repo",
     "-r",
-    help="Repository in format group/subgroup/project (auto-detect if not specified)",
+    help="Repository in format group/subgroup/project or local repo directory (auto-detect if not specified)",
 )
 @click.option("--days", "-d", type=int, default=60, show_default=True)
 @click.option(

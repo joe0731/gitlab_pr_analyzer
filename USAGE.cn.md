@@ -38,7 +38,7 @@ glpa search "query" --ai
 glpa search "query" --ai -cn
 
 # 常用参数
---repo, -r       目标项目路径（默认：从 git remote 自动识别）
+--repo, -r       目标项目路径（group/subgroup/project）或本地 repo 目录（默认：从 git remote 自动识别）
 --months, -m     回溯月数（默认：3）
 --min-score      最小匹配分数（默认：30）
 --max-results    最大返回条数（默认：20）

@@ -38,7 +38,7 @@ glpa search "query" --ai
 glpa search "query" --ai -cn
 
 # options
---repo, -r       Target project path (default: auto-detect from git remote)
+--repo, -r       Target project path (group/subgroup/project) or local repo directory (default: auto-detect from git remote)
 --months, -m     Months to look back (default: 3)
 --min-score      Minimum match score (default: 30)
 --max-results    Maximum number of results (default: 20)

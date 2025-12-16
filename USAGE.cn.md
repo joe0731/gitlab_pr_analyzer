@@ -3,6 +3,20 @@
 
 ## 命令
 
+### `check`
+验证环境变量配置和 GitLab API 连通性。
+
+```bash
+# 基础检查
+glpa check
+
+# 检查某个项目的访问权限
+glpa check -r group/subgroup/project
+
+# 输出 JSON（便于自动化）
+glpa check --json
+```
+
 ### `interactive`
 交互式菜单模式，适合第一次使用。
 

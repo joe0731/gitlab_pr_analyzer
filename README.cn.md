@@ -57,6 +57,8 @@ export CURSOR_AGENT_PATH="/path/to/cursor-agent"
 ## 快速开始
 
 ```bash
+glpa check
+
 glpa interactive
 
 glpa search "payment bugfix"

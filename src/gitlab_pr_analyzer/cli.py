@@ -23,6 +23,7 @@ from .matcher import Matcher, MatchResult
 from .mr_collector import MergeRequestCollector, MergeRequestSummary
 from .mr_exporter import MRJSONExporter
 from .smart_search_analyzer import SmartSearchAnalyzer
+from .gitlab_client import GitLabClient
 from .utils import check_git, check_glab, detect_gitlab_project, format_datetime
 
 console = Console()
@@ -302,6 +303,104 @@ def display_diff_text(diff_text: Optional[str], max_lines: int = 100) -> None:
 def cli() -> None:
     """GitLab MR and Commit Analyzer - Find and analyze relevant changes."""
     pass
+
+
+@cli.command(context_settings={"help_option_names": ["-h", "--help"]})
+@click.option(
+    "--repo",
+    "-r",
+    help="Repository in format group/subgroup/project (optional; used to verify project access)",
+)
+@click.option("--json", "as_json", is_flag=True, help="Output raw JSON for automation")
+def check(repo: Optional[str], as_json: bool) -> None:
+    """Check environment configuration and GitLab API connectivity."""
+    print_banner()
+
+    ok = True
+    details: dict = {"ok": False, "checks": [], "repo": repo}
+
+    git_ok = check_git()
+    details["checks"].append({"name": "git", "ok": git_ok})
+    if git_ok:
+        console.print("[green]✓ git found[/green]")
+    else:
+        console.print("[red]✗ git not found[/red]")
+        ok = False
+
+    host_ok = bool(config.gitlab_host)
+    token_ok = bool(config.gitlab_token)
+    details["checks"].append({"name": "GITLAB_HOST", "ok": host_ok})
+    details["checks"].append({"name": "GITLAB_TOKEN", "ok": token_ok})
+    if not host_ok:
+        console.print("[red]✗ GITLAB_HOST missing[/red]")
+        ok = False
+    if not token_ok:
+        console.print("[red]✗ GITLAB_TOKEN missing[/red]")
+        ok = False
+
+    glab_ok = check_glab()
+    details["checks"].append({"name": "glab", "ok": glab_ok})
+    if glab_ok:
+        console.print("[green]✓ glab found[/green]")
+    else:
+        console.print("[yellow]⚠ glab not found (optional)[/yellow]")
+
+    api_result = None
+    try:
+        client = GitLabClient()
+        api_result = client.check_connection()
+    except Exception as exc:
+        api_result = {"ok": False, "error": str(exc)}
+
+    details["checks"].append({"name": "gitlab_api", "result": api_result})
+    if api_result and api_result.get("ok"):
+        console.print("[green]✓ gitlab api ok[/green]")
+        user = api_result.get("user")
+        if isinstance(user, dict):
+            display = user.get("username")
+            if not display:
+                display = user.get("name")
+            if display:
+                console.print("[green]✓ user: {0}[/green]".format(display))
+    else:
+        ok = False
+        console.print("[red]✗ gitlab api failed[/red]")
+        if api_result and api_result.get("error"):
+            console.print("[red]{0}[/red]".format(api_result.get("error")))
+
+    if repo:
+        project_ok = False
+        project_error = None
+        try:
+            client = GitLabClient()
+            project = client.get_project(repo)
+            project_ok = True
+            web_url = getattr(project, "web_url", None)
+            if web_url:
+                console.print("[green]✓ project access ok: {0}[/green]".format(repo))
+                console.print("[green]✓ url: {0}[/green]".format(web_url))
+            else:
+                console.print("[green]✓ project access ok: {0}[/green]".format(repo))
+        except Exception as exc:
+            project_ok = False
+            project_error = str(exc)
+            console.print("[red]✗ project access failed: {0}[/red]".format(repo))
+            console.print("[red]{0}[/red]".format(project_error))
+            ok = False
+
+        details["checks"].append(
+            {"name": "project_access", "ok": project_ok, "repo": repo, "error": project_error}
+        )
+
+    details["ok"] = ok
+
+    if as_json:
+        import json as _json
+
+        console.print(_json.dumps(details, ensure_ascii=False, indent=2))
+
+    if not ok:
+        sys.exit(1)
 
 
 @cli.command(context_settings={"help_option_names": ["-h", "--help"]})

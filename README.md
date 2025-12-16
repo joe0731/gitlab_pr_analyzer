@@ -61,6 +61,9 @@ pip install gitlab-pr-analyzer
 ## Quick Start
 
 ```bash
+# 0. Check connectivity (recommended after setting env vars)
+glpa check
+
 # 1. Interactive Mode (best for starting)
 glpa interactive
 

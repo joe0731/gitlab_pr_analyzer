@@ -3,6 +3,20 @@ English
 
 ## Commands
 
+### `check`
+Verify environment configuration and GitLab API connectivity.
+
+```bash
+# basic
+glpa check
+
+# verify project access
+glpa check -r group/subgroup/project
+
+# raw JSON for automation
+glpa check --json
+```
+
 ### `interactive`
 Launch the menu-driven interface. Best for first-time users.
 

@@ -64,3 +64,28 @@ class GitLabClient:
             params["updated_after"] = updated_after
 
         return project.mergerequests.list(all=True, **params)
+
+    def check_connection(self) -> dict:
+        """check basic connectivity and auth."""
+        result = {"ok": False, "host": config.gitlab_host, "user": None, "error": None}
+        try:
+            # auth() validates token and populates self.client.user
+            self.client.auth()
+
+            user_obj = None
+            try:
+                user_obj = self.client.user
+            except Exception:
+                user_obj = None
+
+            if user_obj is not None:
+                username = getattr(user_obj, "username", None)
+                name = getattr(user_obj, "name", None)
+                user_id = getattr(user_obj, "id", None)
+                result["user"] = {"id": user_id, "username": username, "name": name}
+
+            result["ok"] = True
+            return result
+        except Exception as exc:
+            result["error"] = str(exc)
+            return result

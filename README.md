@@ -32,19 +32,19 @@ pip install gitlab-pr-analyzer
 
 ```bash
 # 1. Interactive Mode (best for starting)
-gl-pr-analyzer interactive
+glpa interactive
 
 # 2. Search with AI analysis (English output)
-gl-pr-analyzer search "authentication bug" --analyze
+glpa search "authentication bug" --analyze
 
 # 3. Search with AI analysis (Chinese output)
-gl-pr-analyzer search "authentication bug" --analyze -cn
+glpa search "authentication bug" --analyze -cn
 
 # 4. Collect data
-gl-pr-analyzer collect --save-json
+glpa collect --save-json
 
 # 5. Generate report + export datasets
-gl-pr-analyzer traverse --days 7 --save-json -cn
+glpa traverse --days 7 --save-json -cn
 ```
 
 For detailed command usage, see [USAGE.md](USAGE.md).

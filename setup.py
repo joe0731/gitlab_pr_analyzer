@@ -17,7 +17,7 @@ if readme_path.exists():
 
 setup(
     name="gitlab-pr-analyzer",
-    version="0.7.0",
+    version="0.8.0",
     author="GitLab PR Analyzer Team",
     description="Intelligent tool for collecting, analyzing, and summarizing GitLab Merge Requests and commits",
     long_description=long_description,
@@ -38,6 +38,8 @@ setup(
     ],
     entry_points={
         "console_scripts": [
+            # short name for daily usage
+            "glpa=gitlab_pr_analyzer.cli:cli",
             # keep legacy entrypoint for backward compatibility
             "gl-pr-ai=gitlab_pr_analyzer.cli:cli",
             # new entrypoint aligned with github analyzer naming

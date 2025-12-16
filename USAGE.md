@@ -7,7 +7,7 @@ English
 Launch the menu-driven interface. Best for first-time users.
 
 ```bash
-gl-pr-analyzer interactive
+glpa interactive
 ```
 
 ### `search`
@@ -15,13 +15,13 @@ Search for merge requests and commits.
 
 ```bash
 # basic
-gl-pr-analyzer search "query"
+glpa search "query"
 
 # with AI analysis (English output)
-gl-pr-analyzer search "query" --analyze
+glpa search "query" --analyze
 
 # with AI analysis (Chinese output)
-gl-pr-analyzer search "query" --analyze -cn
+glpa search "query" --analyze -cn
 
 # options
 --repo, -r       Target project path (default: auto-detect from git remote)
@@ -38,23 +38,23 @@ gl-pr-analyzer search "query" --analyze -cn
 Collect statistics (open/merged MRs, commits).
 
 ```bash
-gl-pr-analyzer collect --months 6 --save-json --output-dir ./exports
+glpa collect --months 6 --save-json --output-dir ./exports
 ```
 
 ### `traverse`
 Batch analyze recent merge requests for reports.
 
 ```bash
-gl-pr-analyzer traverse --days 7 --save-json
-gl-pr-analyzer traverse --days 7 --save-json -cn
+glpa traverse --days 7 --save-json
+glpa traverse --days 7 --save-json -cn
 ```
 
 ### `view-pr` / `view-commit`
 View details of a specific item.
 
 ```bash
-gl-pr-analyzer view-pr 1024 --analyze --output-dir ./exports   # JSON export enabled by default
-gl-pr-analyzer view-commit <SHA>
+glpa view-pr 1024 --analyze --output-dir ./exports   # JSON export enabled by default
+glpa view-commit <SHA>
 ```
 
 ### JSON Export Notes

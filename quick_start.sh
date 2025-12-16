@@ -34,7 +34,11 @@ echo "Optional for AI features:"
 echo "  export CURSOR_AGENT_PATH=/path/to/cursor-agent"
 echo ""
 echo "Try running:"
+echo "  glpa interactive"
+echo ""
+echo "Legacy commands (still supported):"
 echo "  gl-pr-analyzer interactive"
+echo "  gl-pr-ai interactive"
 echo ""
 
 

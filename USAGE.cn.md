@@ -7,7 +7,7 @@
 交互式菜单模式，适合第一次使用。
 
 ```bash
-gl-pr-analyzer interactive
+glpa interactive
 ```
 
 ### `search`
@@ -15,13 +15,13 @@ gl-pr-analyzer interactive
 
 ```bash
 # 基础搜索
-gl-pr-analyzer search "query"
+glpa search "query"
 
 # 带 AI 分析（英文输出）
-gl-pr-analyzer search "query" --analyze
+glpa search "query" --analyze
 
 # 带 AI 分析（中文输出）
-gl-pr-analyzer search "query" --analyze -cn
+glpa search "query" --analyze -cn
 
 # 常用参数
 --repo, -r       目标项目路径（默认：从 git remote 自动识别）
@@ -38,23 +38,23 @@ gl-pr-analyzer search "query" --analyze -cn
 收集统计信息（open/merged MR、commit 数量）。
 
 ```bash
-gl-pr-analyzer collect --months 6 --save-json --output-dir ./exports
+glpa collect --months 6 --save-json --output-dir ./exports
 ```
 
 ### `traverse`
 遍历近期 MR 并批量做 AI 分析，可自动生成报告。
 
 ```bash
-gl-pr-analyzer traverse --days 7 --save-json
-gl-pr-analyzer traverse --days 7 --save-json -cn
+glpa traverse --days 7 --save-json
+glpa traverse --days 7 --save-json -cn
 ```
 
 ### `view-pr` / `view-commit`
 查看单个条目详情。
 
 ```bash
-gl-pr-analyzer view-pr 1024 --analyze --output-dir ./exports   # 默认导出 JSON，可用 --no-save-json 关闭
-gl-pr-analyzer view-commit <SHA>
+glpa view-pr 1024 --analyze --output-dir ./exports   # 默认导出 JSON，可用 --no-save-json 关闭
+glpa view-commit <SHA>
 ```
 
 ## JSON 导出说明

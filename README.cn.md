@@ -28,13 +28,13 @@ export CURSOR_AGENT_PATH="/path/to/cursor-agent"
 ## 快速开始
 
 ```bash
-gl-pr-analyzer interactive
+glpa interactive
 
-gl-pr-analyzer search "payment bugfix"
-gl-pr-analyzer search "payment bugfix" --analyze -cn
+glpa search "payment bugfix"
+glpa search "payment bugfix" --analyze -cn
 
-gl-pr-analyzer view-pr 1024 --analyze
-gl-pr-analyzer traverse --days 7 --save-json
+glpa view-pr 1024 --analyze
+glpa traverse --days 7 --save-json
 ```
 
 详细参数请看 [USAGE.cn.md](USAGE.cn.md)。

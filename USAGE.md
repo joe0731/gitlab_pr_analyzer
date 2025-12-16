@@ -32,18 +32,19 @@ Search for merge requests and commits.
 glpa search "query"
 
 # with AI analysis (English output)
-glpa search "query" --analyze
+glpa search "query" --ai
 
 # with AI analysis (Chinese output)
-glpa search "query" --analyze -cn
+glpa search "query" --ai -cn
 
 # options
 --repo, -r       Target project path (default: auto-detect from git remote)
 --months, -m     Months to look back (default: 3)
 --min-score      Minimum match score (default: 30)
 --max-results    Maximum number of results (default: 20)
---analyze, -a    Enable AI analysis
+--ai             Enable AI analysis (requires CURSOR_AGENT_PATH)
 --show-diff, -d  Show code changes
+--smart-search   Enable/disable AI keyword extraction (requires --ai)
 --save-json      Save matched MRs as JSON datasets
 --output-dir     Directory for JSON files (default: gl_pr_exports)
 ```
@@ -67,7 +68,7 @@ glpa traverse --days 7 --save-json -cn
 View details of a specific item.
 
 ```bash
-glpa view-pr 1024 --analyze --output-dir ./exports   # JSON export enabled by default
+glpa view-pr 1024 --ai --output-dir ./exports   # JSON export enabled by default
 glpa view-commit <SHA>
 ```
 
@@ -83,6 +84,6 @@ The tool is configured via environment variables:
 - **`GITLAB_HOST`**: GitLab instance base URL. Required.
 - **`GITLAB_TOKEN`**: Personal Access Token with `read_api` or `api` scope. Required.
 - **`GITLAB_INSTANCE_NAME`**: display name in banner (default: `GitLab`).
-- **`CURSOR_AGENT_PATH`**: path to `cursor-agent` executable. Required for `--analyze`.
+- **`CURSOR_AGENT_PATH`**: path to `cursor-agent` executable. Required for `--ai`.
 
 

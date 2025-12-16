@@ -519,13 +519,28 @@ def collect(
 @click.option("--months", "-m", type=int, default=3, show_default=True)
 @click.option("--min-score", type=int, default=30, show_default=True)
 @click.option("--max-results", type=int, default=20, show_default=True)
-@click.option("--analyze", "-a", is_flag=True, help="Analyze results with AI")
+@click.option(
+    "--ai",
+    "use_ai",
+    is_flag=True,
+    default=False,
+    help="Enable AI analysis (requires CURSOR_AGENT_PATH)",
+)
+@click.option(
+    "--analyze",
+    "-a",
+    "use_ai_legacy",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="alias of --ai",
+)
 @click.option("--show-diff", "-d", is_flag=True, help="Show diff for each result")
 @click.option(
     "--smart-search/--no-smart-search",
-    default=True,
+    default=False,
     show_default=True,
-    help="Use AI-powered smart search (default: enabled)",
+    help="Use AI-powered smart search (requires --ai)",
 )
 @click.option(
     "--save-json",
@@ -554,7 +569,7 @@ def collect(
     "use_chinese",
     is_flag=True,
     default=False,
-    help="Output AI analysis in Chinese",
+    help="Output AI analysis in Chinese (requires --ai)",
 )
 def search(
     query: str,
@@ -562,7 +577,8 @@ def search(
     months: int,
     min_score: int,
     max_results: int,
-    analyze: bool,
+    use_ai: bool,
+    use_ai_legacy: bool,
     show_diff: bool,
     smart_search: bool,
     save_json_flag: bool,
@@ -579,6 +595,12 @@ def search(
 
     if not check_prerequisites():
         sys.exit(1)
+
+    if use_ai_legacy:
+        use_ai = True
+
+    if smart_search and (not use_ai):
+        raise click.UsageError("--smart-search requires --ai")
 
     project_path = resolve_repo_identifier(repo)
     save_json = resolve_json_export_flag(
@@ -622,7 +644,7 @@ def search(
                 display_diff_text(diff_text, max_lines=100)
                 console.print()
 
-        if analyze:
+        if use_ai:
             language = "en"
             if use_chinese:
                 language = "cn"
@@ -701,7 +723,22 @@ def search(
     "-r",
     help="Repository in format group/subgroup/project (auto-detect if not specified)",
 )
-@click.option("--analyze", "-a", is_flag=True, help="Analyze with AI")
+@click.option(
+    "--ai",
+    "use_ai",
+    is_flag=True,
+    default=False,
+    help="Enable AI analysis (requires CURSOR_AGENT_PATH)",
+)
+@click.option(
+    "--analyze",
+    "-a",
+    "use_ai_legacy",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="alias of --ai",
+)
 @click.option(
     "--save-json",
     "save_json_flag",
@@ -729,12 +766,13 @@ def search(
     "use_chinese",
     is_flag=True,
     default=False,
-    help="Output AI analysis in Chinese",
+    help="Output AI analysis in Chinese (requires --ai)",
 )
 def view_pr(
     pr_number: int,
     repo: Optional[str],
-    analyze: bool,
+    use_ai: bool,
+    use_ai_legacy: bool,
     save_json_flag: bool,
     no_save_json_flag: bool,
     output_dir: Path,
@@ -751,6 +789,9 @@ def view_pr(
     )
 
     project_path = resolve_repo_identifier(repo)
+
+    if use_ai_legacy:
+        use_ai = True
 
     try:
         collector = MergeRequestCollector(project_path)
@@ -773,7 +814,7 @@ def view_pr(
             diff_text = diff_provider.get_merge_request_diff(target)
             display_diff_text(diff_text, max_lines=300)
 
-        if analyze:
+        if use_ai:
             language = "en"
             if use_chinese:
                 language = "cn"
@@ -801,13 +842,31 @@ def view_pr(
 
 @cli.command("view-commit", context_settings={"help_option_names": ["-h", "--help"]})
 @click.argument("commit_sha")
-@click.option("--analyze", "-a", is_flag=True, help="Analyze with AI")
-def view_commit(commit_sha: str, analyze: bool) -> None:
+@click.option(
+    "--ai",
+    "use_ai",
+    is_flag=True,
+    default=False,
+    help="Enable AI analysis (requires CURSOR_AGENT_PATH)",
+)
+@click.option(
+    "--analyze",
+    "-a",
+    "use_ai_legacy",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="alias of --ai",
+)
+def view_commit(commit_sha: str, use_ai: bool, use_ai_legacy: bool) -> None:
     """View details of a specific commit."""
     print_banner()
 
     if not check_prerequisites():
         sys.exit(1)
+
+    if use_ai_legacy:
+        use_ai = True
 
     try:
         commit_collector = CommitCollector()
@@ -823,7 +882,7 @@ def view_commit(commit_sha: str, analyze: bool) -> None:
             diff_text = diff_provider.get_commit_diff(commit)
             display_diff_text(diff_text, max_lines=300)
 
-        if analyze:
+        if use_ai:
             ai_analyzer = AIAnalyzer()
             if ai_analyzer.is_available:
 
@@ -876,7 +935,23 @@ def view_commit(commit_sha: str, analyze: bool) -> None:
     "use_chinese",
     is_flag=True,
     default=False,
-    help="Output AI analysis in Chinese",
+    help="Output AI analysis in Chinese (requires --ai)",
+)
+@click.option(
+    "--ai",
+    "use_ai",
+    is_flag=True,
+    default=False,
+    help="Enable AI analysis (requires CURSOR_AGENT_PATH)",
+)
+@click.option(
+    "--analyze",
+    "-a",
+    "use_ai_legacy",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="alias of --ai",
 )
 def traverse(
     repo: Optional[str],
@@ -885,8 +960,10 @@ def traverse(
     no_save_json_flag: bool,
     output_dir: Path,
     use_chinese: bool,
+    use_ai: bool,
+    use_ai_legacy: bool,
 ) -> None:
-    """Traverse recent MRs and analyze them with AI."""
+    """Traverse recent MRs and optionally analyze them with AI."""
     print_banner()
 
     if days <= 0:
@@ -898,15 +975,8 @@ def traverse(
 
     project_path = resolve_repo_identifier(repo)
 
-    language = "en"
-    if use_chinese:
-        language = "cn"
-    ai_analyzer = AIAnalyzer(language=language)
-    if not ai_analyzer.is_available:
-        console.print(
-            "[red]AI analysis not available. Please set CURSOR_AGENT_PATH environment variable[/red]"
-        )
-        sys.exit(1)
+    if use_ai_legacy:
+        use_ai = True
 
     save_json = resolve_json_export_flag(
         save_json_flag, no_save_json_flag, default=False, command_name="traverse"
@@ -929,63 +999,107 @@ def traverse(
             console.print("[yellow]No MRs found in the specified range[/yellow]")
             return
 
-        diff_provider = DiffProvider(project_path)
-
-        def provide_diff(item) -> Optional[str]:
-            return diff_provider.get_diff(item)
-
-        analyzed_items: List[tuple[MergeRequestSummary, Optional[str]]] = []
-
-        exporter = None
-        if save_json:
-            exporter = MRJSONExporter(project_path=project_path, output_dir=output_dir)
-
-        def analyze_group(items: List[MergeRequestSummary], label: str) -> None:
-            if not items:
-                console.print("[yellow]No {0} to analyze[/yellow]".format(label.lower()))
-                return
-
-            console.print("\n[bold cyan]Analyzing {0}...[/bold cyan]".format(label))
-            total = len(items)
-            index_value = 1
-            for mr in items:
+        if use_ai:
+            language = "en"
+            if use_chinese:
+                language = "cn"
+            ai_analyzer = AIAnalyzer(language=language)
+            if not ai_analyzer.is_available:
                 console.print(
-                    "\n[bold]Analyzing {0} {1}/{2}: MR !{3}[/bold]".format(
-                        label[:-1], index_value, total, mr.iid
-                    )
+                    "[red]AI analysis not available. Please set CURSOR_AGENT_PATH environment variable[/red]"
                 )
-                analysis = ai_analyzer.analyze(
-                    mr, include_diff=True, diff_provider=provide_diff
-                )
-                analyzed_items.append((mr, analysis))
-                if analysis:
-                    ai_analyzer.display_analysis(mr, analysis)
+                sys.exit(1)
 
-                if save_json and exporter:
+            diff_provider = DiffProvider(project_path)
+
+            def provide_diff(item) -> Optional[str]:
+                return diff_provider.get_diff(item)
+
+            analyzed_items: List[tuple[MergeRequestSummary, Optional[str]]] = []
+
+            exporter = None
+            if save_json:
+                exporter = MRJSONExporter(project_path=project_path, output_dir=output_dir)
+
+            def analyze_group(items: List[MergeRequestSummary], label: str) -> None:
+                if not items:
+                    console.print(
+                        "[yellow]No {0} to analyze[/yellow]".format(label.lower())
+                    )
+                    return
+
+                console.print("\n[bold cyan]Analyzing {0}...[/bold cyan]".format(label))
+                total = len(items)
+                index_value = 1
+                for mr in items:
+                    console.print(
+                        "\n[bold]Analyzing {0} {1}/{2}: MR !{3}[/bold]".format(
+                            label[:-1], index_value, total, mr.iid
+                        )
+                    )
+                    analysis = ai_analyzer.analyze(
+                        mr, include_diff=True, diff_provider=provide_diff
+                    )
+                    analyzed_items.append((mr, analysis))
+                    if analysis:
+                        ai_analyzer.display_analysis(mr, analysis)
+
+                    if save_json and exporter:
+                        try:
+                            path = exporter.export_mr(mr.iid, title_hint=mr.title)
+                            console.print(
+                                "[green]✓ JSON saved: {0}[/green]\n".format(path)
+                            )
+                        except Exception as exc:
+                            console.print(
+                                "[red]Failed to export MR !{0}: {1}[/red]\n".format(
+                                    mr.iid, exc
+                                )
+                            )
+
+                    index_value += 1
+
+            analyze_group(merged_mrs, "Merged MRs")
+            analyze_group(open_mrs, "Open MRs")
+
+            if save_json and analyzed_items:
+                report = ai_analyzer.generate_summary_report(
+                    analyzed_items,
+                    query="Traversal analysis for last {0} days".format(days),
+                )
+                report_file = "mr_traversal_report_{0}_{1}d.md".format(
+                    project_path.replace("/", "_"), days
+                )
+                Path(report_file).write_text(report, encoding="utf-8")
+                console.print("[green]✓ Report saved to: {0}[/green]".format(report_file))
+        else:
+            if save_json:
+                exporter = MRJSONExporter(project_path=project_path, output_dir=output_dir)
+                saved = 0
+                for mr in merged_mrs:
                     try:
-                        path = exporter.export_mr(mr.iid, title_hint=mr.title)
-                        console.print("[green]✓ JSON saved: {0}[/green]\n".format(path))
+                        exporter.export_mr(mr.iid, title_hint=mr.title)
+                        saved += 1
                     except Exception as exc:
                         console.print(
-                            "[red]Failed to export MR !{0}: {1}[/red]\n".format(
-                                mr.iid, exc
-                            )
+                            "[red]Failed to export MR !{0}: {1}[/red]".format(mr.iid, exc)
                         )
-
-                index_value += 1
-
-        analyze_group(merged_mrs, "Merged MRs")
-        analyze_group(open_mrs, "Open MRs")
-
-        if save_json and analyzed_items:
-            report = ai_analyzer.generate_summary_report(
-                analyzed_items, query="Traversal analysis for last {0} days".format(days)
-            )
-            report_file = "mr_traversal_report_{0}_{1}d.md".format(
-                project_path.replace("/", "_"), days
-            )
-            Path(report_file).write_text(report, encoding="utf-8")
-            console.print("[green]✓ Report saved to: {0}[/green]".format(report_file))
+                for mr in open_mrs:
+                    try:
+                        exporter.export_mr(mr.iid, title_hint=mr.title)
+                        saved += 1
+                    except Exception as exc:
+                        console.print(
+                            "[red]Failed to export MR !{0}: {1}[/red]".format(mr.iid, exc)
+                        )
+                if saved == 0:
+                    console.print("[yellow]No MR JSON files were created[/yellow]")
+                else:
+                    console.print(
+                        "[green]✓ Exported {0} MR file(s) to {1}[/green]".format(
+                            saved, str(output_dir)
+                        )
+                    )
 
     except Exception as exc:
         console.print("[red]Error: {0}[/red]".format(exc))
@@ -993,12 +1107,31 @@ def traverse(
 
 
 @cli.command(context_settings={"help_option_names": ["-h", "--help"]})
-def interactive() -> None:
+@click.option(
+    "--ai",
+    "use_ai",
+    is_flag=True,
+    default=False,
+    help="Enable AI features in interactive mode (requires CURSOR_AGENT_PATH)",
+)
+@click.option(
+    "--analyze",
+    "-a",
+    "use_ai_legacy",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="alias of --ai",
+)
+def interactive(use_ai: bool, use_ai_legacy: bool) -> None:
     """Interactive mode for exploring MRs and commits."""
     print_banner()
 
     if not check_prerequisites():
         sys.exit(1)
+
+    if use_ai_legacy:
+        use_ai = True
 
     try:
         repo_input = Prompt.ask(
@@ -1022,7 +1155,9 @@ def interactive() -> None:
 
         diff_provider = DiffProvider(project_path)
         matcher = Matcher(minimum_score=30)
-        ai_analyzer = AIAnalyzer()
+        ai_analyzer = None
+        if use_ai:
+            ai_analyzer = AIAnalyzer()
 
         console.print("[bold cyan]Data collected:[/bold cyan]")
         console.print("  • Total MRs: {0}".format(len(merge_requests)))
@@ -1044,21 +1179,22 @@ def interactive() -> None:
                 results = matcher.search(merge_requests, commits, query)
                 display_results_table(results)
 
-                if results and Confirm.ask("\nAnalyze results with AI?", default=False):
-                    if ai_analyzer.is_available:
+                if use_ai and ai_analyzer is not None and results:
+                    if Confirm.ask("\nAnalyze results with AI?", default=False):
+                        if ai_analyzer.is_available:
 
-                        def provide_diff(item) -> Optional[str]:
-                            return diff_provider.get_diff(item)
+                            def provide_diff(item) -> Optional[str]:
+                                return diff_provider.get_diff(item)
 
-                        items = [r.item for r in results[:5]]
-                        analyzed = ai_analyzer.batch_analyze(
-                            items, include_diff=True, diff_provider=provide_diff
-                        )
-                        for item, analysis in analyzed:
-                            if analysis:
-                                ai_analyzer.display_analysis(item, analysis)
-                    else:
-                        console.print("[yellow]AI analysis not available[/yellow]")
+                            items = [r.item for r in results[:5]]
+                            analyzed = ai_analyzer.batch_analyze(
+                                items, include_diff=True, diff_provider=provide_diff
+                            )
+                            for item, analysis in analyzed:
+                                if analysis:
+                                    ai_analyzer.display_analysis(item, analysis)
+                        else:
+                            console.print("[yellow]AI analysis not available[/yellow]")
 
             elif choice == "2":
                 iid = int(Prompt.ask("\n[magenta]Enter MR iid[/magenta]"))

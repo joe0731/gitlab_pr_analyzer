@@ -68,16 +68,19 @@ glpa check
 glpa interactive
 
 # 2. Search with AI analysis (English output)
-glpa search "authentication bug" --analyze
+glpa search "authentication bug" --ai
 
 # 3. Search with AI analysis (Chinese output)
-glpa search "authentication bug" --analyze -cn
+glpa search "authentication bug" --ai -cn
 
 # 4. Collect data
 glpa collect --save-json
 
 # 5. Generate report + export datasets
-glpa traverse --days 7 --save-json -cn
+glpa traverse --days 7 --save-json
+
+# optional: enable AI analysis for traverse
+glpa traverse --days 7 --save-json --ai -cn
 ```
 
 For detailed command usage, see [USAGE.md](USAGE.md).

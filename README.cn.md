@@ -62,9 +62,9 @@ glpa check
 glpa interactive
 
 glpa search "payment bugfix"
-glpa search "payment bugfix" --analyze -cn
+glpa search "payment bugfix" --ai -cn
 
-glpa view-pr 1024 --analyze
+glpa view-pr 1024 --ai
 glpa traverse --days 7 --save-json
 ```
 

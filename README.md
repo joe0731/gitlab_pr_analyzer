@@ -13,6 +13,36 @@ A command-line tool for intelligently collecting, analyzing, and summarizing Git
   - `GITLAB_HOST` (e.g. `https://gitlab.example.com`)
   - `GITLAB_TOKEN` (PAT with `read_api` or `api` scope)
 
+### Recommended (optional)
+- **GitLab CLI (glab)**: recommended for better and faster diff retrieval
+  - install and authenticate: `glab auth login`
+
+### Install GitLab CLI (glab)
+
+- **macOS (Homebrew)**:
+
+```bash
+brew install glab
+glab auth login
+```
+
+- **Linux (APT, Ubuntu/Debian)**:
+
+```bash
+sudo apt update
+sudo apt install -y glab
+glab auth login
+```
+
+- **Windows (Winget)**:
+
+```powershell
+winget install --id GitLab.glab
+glab auth login
+```
+
+> Daily usage tip: use the short command `glpa` (legacy: `gl-pr-analyzer`, `gl-pr-ai`).
+
 ### Install
 
 ```bash

@@ -19,6 +19,35 @@ export GITLAB_HOST="https://gitlab.example.com"
 export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"
 ```
 
+## 推荐（可选）
+
+- **GitLab CLI（glab）**：推荐安装以获得更快/更完整的 diff
+  - 安装后需要认证：`glab auth login`
+
+## 安装 GitLab CLI（glab）
+
+- **macOS（Homebrew）**：
+
+```bash
+brew install glab
+glab auth login
+```
+
+- **Linux（APT，Ubuntu/Debian）**：
+
+```bash
+sudo apt update
+sudo apt install -y glab
+glab auth login
+```
+
+- **Windows（Winget）**：
+
+```powershell
+winget install --id GitLab.glab
+glab auth login
+```
+
 可选（启用 AI）：
 
 ```bash
@@ -38,5 +67,7 @@ glpa traverse --days 7 --save-json
 ```
 
 详细参数请看 [USAGE.cn.md](USAGE.cn.md)。
+
+> 日常使用建议：用短命令 `glpa`（兼容旧命令 `gl-pr-analyzer`、`gl-pr-ai`）。
 
 

@@ -444,7 +444,7 @@ def collect(
         save_json_flag, no_save_json_flag, default=False, command_name="collect"
     )
 
-        project_path = resolve_repo_identifier(repo)
+    project_path = resolve_repo_identifier(repo)
     try:
         mr_collector = MergeRequestCollector(project_path)
         console.print("\n[bold]Repository:[/bold] {0}\n".format(project_path))
